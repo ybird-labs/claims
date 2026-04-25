@@ -1,0 +1,12 @@
+[package]
+name = "shared-kernel"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

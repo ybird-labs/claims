@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/shared-kernel",
+    "crates/claim-graph/claim-graph-domain",
+    "crates/claim-graph/claim-graph-application",
+    "crates/claim-graph/claim-graph-infrastructure",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+
+[workspace.dependencies]
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

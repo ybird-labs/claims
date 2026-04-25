@@ -1,0 +1,14 @@
+[package]
+name = "claim-graph-infrastructure"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+claim-graph-application = { path = "../claim-graph-application" }
+claim-graph-domain = { path = "../claim-graph-domain" }
+shared-kernel = { path = "../../shared-kernel" }
+async-trait = { workspace = true }
+
+[lints]
+workspace = true

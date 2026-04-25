@@ -1,0 +1,12 @@
+[package]
+name = "claim-graph-application"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+claim-graph-domain = { path = "../claim-graph-domain" }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
