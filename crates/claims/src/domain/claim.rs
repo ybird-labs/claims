@@ -126,7 +126,7 @@ mod tests {
 
     fn asserted_content() -> AssertedContent {
         AssertedContent::new(
-            CanonicalRdfDataset::new(
+            CanonicalRdfDataset::from_canonical_nquads(
                 CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
                 "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
             )

@@ -15,6 +15,14 @@ impl AssertedContent {
     }
 }
 
+/// Canonical RDF dataset representation for accepted asserted content.
+///
+/// This type stores output from the RDF canonicalization pipeline. It does not
+/// parse, schema-validate, or canonicalize input by itself. Callers must provide
+/// already-canonicalized N-Quads for the selected encoding profile.
+///
+/// The provided representation is preserved exactly because it participates in
+/// claim-value fingerprinting.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct CanonicalRdfDataset {
     encoding: CanonicalRdfContentEncoding,
@@ -22,7 +30,7 @@ pub struct CanonicalRdfDataset {
 }
 
 impl CanonicalRdfDataset {
-    pub fn new(
+    pub fn from_canonical_nquads(
         encoding: CanonicalRdfContentEncoding,
         nquads: impl Into<String>,
     ) -> Result<Self, DomainError> {
@@ -58,8 +66,8 @@ mod tests {
     use super::{CanonicalRdfContentEncoding, CanonicalRdfDataset};
 
     #[test]
-    fn canonical_dataset_rejects_empty_content() {
-        let err = CanonicalRdfDataset::new(
+    fn canonical_dataset_rejects_empty_canonical_nquads() {
+        let err = CanonicalRdfDataset::from_canonical_nquads(
             CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
             "",
         )
@@ -69,8 +77,8 @@ mod tests {
     }
 
     #[test]
-    fn canonical_dataset_rejects_whitespace_only_content() {
-        let err = CanonicalRdfDataset::new(
+    fn canonical_dataset_rejects_whitespace_only_canonical_nquads() {
+        let err = CanonicalRdfDataset::from_canonical_nquads(
             CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
             " \n\t ",
         )
@@ -80,19 +88,22 @@ mod tests {
     }
 
     #[test]
-    fn canonical_dataset_exposes_text_and_fingerprint_bytes() {
-        let dataset = CanonicalRdfDataset::new(
+    fn canonical_dataset_preserves_canonical_nquads_exactly() {
+        let nquads = "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n";
+
+        let dataset = CanonicalRdfDataset::from_canonical_nquads(
             CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
-            "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
+            nquads,
         )
         .unwrap();
 
-        assert_eq!(dataset.as_str().as_bytes(), dataset.as_bytes());
+        assert_eq!(dataset.as_str(), nquads);
+        assert_eq!(dataset.as_bytes(), nquads.as_bytes());
     }
 
     #[test]
     fn canonical_dataset_records_encoding_profile() {
-        let dataset = CanonicalRdfDataset::new(
+        let dataset = CanonicalRdfDataset::from_canonical_nquads(
             CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
             "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
         )
