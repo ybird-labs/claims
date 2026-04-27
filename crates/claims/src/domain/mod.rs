@@ -25,7 +25,7 @@ pub use content::{
 pub use error::DomainError;
 pub use fingerprint::{
     ClaimFingerprint, ClaimFingerprintSuite, Sha256Digest, SnapshotFingerprint,
-    SubmittedMaterialFingerprint,
+    SnapshotFingerprintSuite, SubmittedMaterialFingerprint, SubmittedMaterialFingerprintSuite,
 };
 pub use id::{ClaimId, SnapshotId, SubmissionId};
 pub use iri::{AbsoluteIri, AssertorIri, ClaimIri, ClaimTypeIri, SnapshotIri};
