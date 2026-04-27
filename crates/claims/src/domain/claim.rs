@@ -85,8 +85,9 @@ impl Claim {
 mod tests {
     use super::{Claim, ClaimValue};
     use crate::domain::{
-        AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalRdfContentEncoding,
-        CanonicalRdfDataset, ClaimFingerprint, ClaimId, ClaimIri, DateTimeUtc, Sha256Digest,
+        AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
+        CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimFingerprint, ClaimId, ClaimIri,
+        DateTimeUtc, Sha256Digest,
     };
 
     #[test]
@@ -125,13 +126,15 @@ mod tests {
     }
 
     fn asserted_content() -> AssertedContent {
-        AssertedContent::new(
-            CanonicalRdfDataset::from_canonical_nquads(
-                CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
-                "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
-            )
-            .unwrap(),
+        let nquads = CanonicalNQuads::from_canonicalized(
+            "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
         )
+        .unwrap();
+
+        AssertedContent::new(CanonicalRdfDataset::new(
+            CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
+            nquads,
+        ))
     }
 
     fn assertion_provenance() -> AssertionProvenance {

@@ -19,7 +19,9 @@ mod provenance;
 mod time;
 
 pub use claim::{Claim, ClaimValue};
-pub use content::{AssertedContent, CanonicalRdfContentEncoding, CanonicalRdfDataset};
+pub use content::{
+    AssertedContent, CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset,
+};
 pub use error::DomainError;
 pub use fingerprint::{
     ClaimFingerprint, ClaimFingerprintSuite, Sha256Digest, SnapshotFingerprint,
