@@ -26,7 +26,7 @@ impl DateTimeUtc {
 
     pub fn parse_rfc3339(value: &str) -> Result<Self, DomainError> {
         let parsed = OffsetDateTime::parse(value, &Rfc3339)
-            .map_err(|_| DomainError::InvalidCanonicalInstant)?;
+            .map_err(|_| DomainError::InvalidRfc3339InstantFormat)?;
 
         Ok(Self::new(parsed))
     }
@@ -38,7 +38,7 @@ impl DateTimeUtc {
     pub fn format_rfc3339(self) -> Result<String, DomainError> {
         self.0
             .format(&Rfc3339)
-            .map_err(|_| DomainError::InvalidCanonicalInstant)
+            .map_err(|_| DomainError::Rfc3339InstantFormatFailed)
     }
 }
 
@@ -58,9 +58,6 @@ mod tests {
     fn datetime_utc_rejects_invalid_timestamp() {
         let err = DateTimeUtc::parse_rfc3339("not-a-timestamp").unwrap_err();
 
-        assert_eq!(
-            err.to_string(),
-            "timestamp must be a valid canonical UTC instant"
-        );
+        assert_eq!(err.to_string(), "invalid RFC 3339 instant format");
     }
 }

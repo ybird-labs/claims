@@ -1,22 +1,16 @@
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum DomainError {
+    #[error("asserted content must not be empty")]
     EmptyAssertedContent,
+
+    #[error("value must be a valid absolute IRI")]
     InvalidAbsoluteIri,
-    InvalidCanonicalInstant,
-}
 
-impl fmt::Display for DomainError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::EmptyAssertedContent => f.write_str("asserted content must not be empty"),
-            Self::InvalidAbsoluteIri => f.write_str("value must be a valid absolute IRI"),
-            Self::InvalidCanonicalInstant => {
-                f.write_str("timestamp must be a valid canonical UTC instant")
-            }
-        }
-    }
-}
+    #[error("invalid RFC 3339 instant format")]
+    InvalidRfc3339InstantFormat,
 
-impl std::error::Error for DomainError {}
+    #[error("failed to format instant as RFC 3339")]
+    Rfc3339InstantFormatFailed,
+}
