@@ -18,7 +18,7 @@ mod iri;
 mod provenance;
 mod time;
 
-pub use claim::{Claim, ClaimValue};
+pub use claim::{Claim, ClaimCandidate, ClaimValue};
 pub use content::{
     AssertedContent, CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset,
 };
