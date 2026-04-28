@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::RwLock};
 
 use crate::{
     application::{ClaimRepository, ClaimRepositoryError, ClaimRepositoryResult},
@@ -6,9 +6,14 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub struct InMemoryClaimRepository {
+pub struct State {
     claims_by_id: BTreeMap<ClaimId, Claim>,
     claim_ids_by_iri: BTreeMap<ClaimIri, ClaimId>,
+}
+
+#[derive(Debug, Default)]
+pub struct InMemoryClaimRepository {
+    state: RwLock<State>,
 }
 
 impl InMemoryClaimRepository {
@@ -19,35 +24,39 @@ impl InMemoryClaimRepository {
 
 impl ClaimRepository for InMemoryClaimRepository {
     fn get_claim(&self, claim_id: &ClaimId) -> ClaimRepositoryResult<Option<Claim>> {
-        Ok(self.claims_by_id.get(claim_id).cloned())
+        let state = self.state.read().unwrap();
+
+        Ok(state.claims_by_id.get(claim_id).cloned())
     }
 
     fn get_claim_by_iri(&self, claim_iri: &ClaimIri) -> ClaimRepositoryResult<Option<Claim>> {
-        let Some(claim_id) = self.claim_ids_by_iri.get(claim_iri) else {
+        let state = self.state.read().unwrap();
+        let Some(claim_id) = state.claim_ids_by_iri.get(claim_iri) else {
             return Ok(None);
         };
 
-        Ok(self.claims_by_id.get(claim_id).cloned())
+        Ok(state.claims_by_id.get(claim_id).cloned())
     }
 
-    fn insert_claim(&mut self, claim: Claim) -> ClaimRepositoryResult<()> {
+    fn insert_claim(&self, claim: Claim) -> ClaimRepositoryResult<()> {
+        let mut state = self.state.write().unwrap();
         let claim_id = claim.id().clone();
         let claim_iri = claim.iri().clone();
 
-        if self.claims_by_id.contains_key(&claim_id) {
+        if state.claims_by_id.contains_key(&claim_id) {
             return Err(ClaimRepositoryError::DuplicateId(
                 claim_id.as_str().to_string(),
             ));
         }
 
-        if self.claim_ids_by_iri.contains_key(&claim_iri) {
+        if state.claim_ids_by_iri.contains_key(&claim_iri) {
             return Err(ClaimRepositoryError::DuplicateIri(
                 claim_iri.as_str().to_string(),
             ));
         }
 
-        self.claim_ids_by_iri.insert(claim_iri, claim_id.clone());
-        self.claims_by_id.insert(claim_id, claim);
+        state.claim_ids_by_iri.insert(claim_iri, claim_id.clone());
+        state.claims_by_id.insert(claim_id, claim);
 
         Ok(())
     }
@@ -68,7 +77,7 @@ mod tests {
 
     #[test]
     fn inserts_and_gets_claim_by_id() {
-        let mut repository = InMemoryClaimRepository::new();
+        let repository = InMemoryClaimRepository::new();
         let claim = claim("claim-1", "https://example.com/claims/1", [1; 32]);
 
         repository.insert_claim(claim.clone()).unwrap();
@@ -78,7 +87,7 @@ mod tests {
 
     #[test]
     fn inserts_and_gets_claim_by_iri() {
-        let mut repository = InMemoryClaimRepository::new();
+        let repository = InMemoryClaimRepository::new();
         let claim = claim("claim-1", "https://example.com/claims/1", [1; 32]);
 
         repository.insert_claim(claim.clone()).unwrap();
@@ -113,7 +122,7 @@ mod tests {
 
     #[test]
     fn duplicate_claim_id_is_rejected() {
-        let mut repository = InMemoryClaimRepository::new();
+        let repository = InMemoryClaimRepository::new();
         let first = claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let duplicate_id = claim("claim-1", "https://example.com/claims/2", [2; 32]);
 
@@ -129,7 +138,7 @@ mod tests {
 
     #[test]
     fn duplicate_claim_iri_is_rejected() {
-        let mut repository = InMemoryClaimRepository::new();
+        let repository = InMemoryClaimRepository::new();
         let first = claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let duplicate_iri = claim("claim-2", "https://example.com/claims/1", [2; 32]);
 
