@@ -150,9 +150,18 @@ mod tests {
             err,
             ClaimRepositoryError::DuplicateId(ClaimId::new("claim-1"))
         );
-        assert_eq!(repository.get_claim(first.id()).unwrap(), Some(first.clone()));
-        assert_eq!(repository.get_claim_by_iri(first.iri()).unwrap(), Some(first));
-        assert_eq!(repository.get_claim_by_iri(duplicate_id.iri()).unwrap(), None);
+        assert_eq!(
+            repository.get_claim(first.id()).unwrap(),
+            Some(first.clone())
+        );
+        assert_eq!(
+            repository.get_claim_by_iri(first.iri()).unwrap(),
+            Some(first)
+        );
+        assert_eq!(
+            repository.get_claim_by_iri(duplicate_id.iri()).unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -171,8 +180,14 @@ mod tests {
                 ClaimIri::new("https://example.com/claims/1").unwrap()
             )
         );
-        assert_eq!(repository.get_claim(first.id()).unwrap(), Some(first.clone()));
-        assert_eq!(repository.get_claim_by_iri(first.iri()).unwrap(), Some(first));
+        assert_eq!(
+            repository.get_claim(first.id()).unwrap(),
+            Some(first.clone())
+        );
+        assert_eq!(
+            repository.get_claim_by_iri(first.iri()).unwrap(),
+            Some(first)
+        );
         assert_eq!(repository.get_claim(duplicate_iri.id()).unwrap(), None);
     }
 
