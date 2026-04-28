@@ -17,8 +17,8 @@ L0 -> L1 -> Ln
 ```
 
 - **L0:** open linked-data claim graph
-- **Snapshots:** stable views of L0 at a specific time
-- **L1:** schema validation over snapshots
+- **Snapshots:** stable views of L0 or L0 subset at a specific time
+- **L1:**  schema and protocol-based verification of snapshots 
 - **Ln:** assets, certificates, contracts, governance actions, and triggers derived from validated claims
 
 ## Why It Exists
