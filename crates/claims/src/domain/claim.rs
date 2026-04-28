@@ -22,8 +22,21 @@ impl ClaimCandidate {
         &self.provenance
     }
 
+    /// Builds a claim value while keeping this candidate available.
+    ///
+    /// This clones the candidate's committed fields. Use this when callers still
+    /// need to inspect or reuse the candidate after deriving the claim value.
     pub fn to_claim_value(&self, iri: ClaimIri) -> ClaimValue {
         ClaimValue::new(iri, self.asserted_content.clone(), self.provenance.clone())
+    }
+
+    /// Converts this candidate into a claim value.
+    ///
+    /// This consumes the candidate and moves its committed fields into the claim
+    /// value without cloning. Use this for one-way admission flows where the
+    /// candidate is no longer needed after conversion.
+    pub fn into_claim_value(self, iri: ClaimIri) -> ClaimValue {
+        ClaimValue::new(iri, self.asserted_content, self.provenance)
     }
 }
 
@@ -137,6 +150,21 @@ mod tests {
         let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
 
         let value = candidate.to_claim_value(iri.clone());
+
+        assert_eq!(value.iri(), &iri);
+        assert_eq!(value.asserted_content(), &content);
+        assert_eq!(value.provenance(), &provenance);
+    }
+
+    #[test]
+    fn claim_candidate_into_claim_value() {
+        let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
+        let content = asserted_content();
+        let provenance = assertion_provenance();
+
+        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+
+        let value = candidate.into_claim_value(iri.clone());
 
         assert_eq!(value.iri(), &iri);
         assert_eq!(value.asserted_content(), &content);

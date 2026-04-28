@@ -15,7 +15,7 @@ where
         Self { repository }
     }
 
-    pub fn insert_claim(&mut self, claim: Claim) -> ApplicationResult<()> {
+    pub fn insert_claim(&self, claim: Claim) -> ApplicationResult<()> {
         self.repository
             .insert_claim(claim)
             .map_err(|error| match error {
@@ -53,11 +53,11 @@ mod tests {
 
     #[test]
     fn insert_claim_maps_late_duplicate_id_to_claim_already_exists() {
-        let candidate = claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let candidate = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let repository = StubClaimRepository {
             insert_error: Some(ClaimRepositoryError::DuplicateId(ClaimId::new("claim-1"))),
         };
-        let mut service = ClaimService::new(repository);
+        let service = ClaimService::new(repository);
 
         let err = service.insert_claim(candidate).unwrap_err();
 
@@ -69,13 +69,13 @@ mod tests {
 
     #[test]
     fn insert_claim_maps_late_duplicate_iri_to_claim_iri_already_exists() {
-        let candidate = claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let candidate = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let repository = StubClaimRepository {
             insert_error: Some(ClaimRepositoryError::DuplicateIri(
                 ClaimIri::new("https://example.com/claims/1").unwrap(),
             )),
         };
-        let mut service = ClaimService::new(repository);
+        let service = ClaimService::new(repository);
 
         let err = service.insert_claim(candidate).unwrap_err();
 
@@ -109,7 +109,7 @@ mod tests {
         }
     }
 
-    fn claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
+    fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
         Claim::new(
             ClaimId::new(id),
             ClaimValue::new(

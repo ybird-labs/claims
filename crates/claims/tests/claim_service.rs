@@ -11,8 +11,8 @@ use claims::{
 #[test]
 fn claim_service_inserts_and_reads_claim_through_in_memory_repository() {
     let repository = InMemoryClaimRepository::new();
-    let mut service = ClaimService::new(repository);
-    let claim = claim("claim-1", "https://example.com/claims/1", [1; 32]);
+    let service = ClaimService::new(repository);
+    let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
 
     service.insert_claim(claim.clone()).unwrap();
     assert_eq!(service.get_claim(claim.id()).unwrap(), Some(claim.clone()));
@@ -22,8 +22,8 @@ fn claim_service_inserts_and_reads_claim_through_in_memory_repository() {
 #[test]
 fn claim_service_inserts_same_claim_twice() {
     let repository = InMemoryClaimRepository::new();
-    let mut service = ClaimService::new(repository);
-    let claim = claim("claim-1", "https://example.com/claims/1", [1; 32]);
+    let service = ClaimService::new(repository);
+    let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
 
     service.insert_claim(claim.clone()).unwrap();
     let err = service.insert_claim(claim.clone()).unwrap_err();
@@ -41,7 +41,7 @@ fn claim_service_get_unknown_claim() {
     assert_eq!(service.get_claim(&claim_id).unwrap(), None);
 }
 
-fn claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
+fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
     Claim::new(
         ClaimId::new(id),
         ClaimValue::new(
