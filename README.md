@@ -1,6 +1,6 @@
 # Claims Engine
 
-The Claims Engine is an impact accounting framework for creating, validating, and composing verifiable environmental claims.
+The Claims Engine is an impact accounting framework for creating, validating, and composing verifiable claims.
 
 It uses linked data, graph-based evidence, attestations, and blockchain anchoring to move impact accounting beyond static documents and into transparent, replayable claim networks.
 
@@ -19,7 +19,7 @@ L0 -> L1 -> Ln
 - **L0:** open linked-data claim graph
 - **Snapshots:** stable views of L0 or L0 subset at a specific time
 - **L1:**  schema and protocol-based verification of snapshots 
-- **Ln:** assets, certificates, contracts, governance actions, and triggers derived from validated claims
+- **Ln:** assets, certificates, contracts, governance actions, reports, and triggers derived from validated claims
 
 ## Why It Exists
 
