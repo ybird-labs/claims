@@ -2,7 +2,7 @@ use crate::domain::{Claim, ClaimId, ClaimIri};
 
 use super::{ApplicationError, ApplicationResult, ClaimRepository, ClaimRepositoryError};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ClaimService<R> {
     repository: R,
 }
@@ -55,7 +55,7 @@ mod tests {
     fn insert_claim_maps_late_duplicate_id_to_claim_already_exists() {
         let candidate = claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let repository = StubClaimRepository {
-            insert_error: Some(ClaimRepositoryError::DuplicateId("claim-1".to_string())),
+            insert_error: Some(ClaimRepositoryError::DuplicateId(ClaimId::new("claim-1"))),
         };
         let mut service = ClaimService::new(repository);
 
@@ -63,7 +63,7 @@ mod tests {
 
         assert_eq!(
             err,
-            ApplicationError::ClaimAlreadyExists("claim-1".to_string())
+            ApplicationError::ClaimAlreadyExists(ClaimId::new("claim-1"))
         );
     }
 
@@ -72,7 +72,7 @@ mod tests {
         let candidate = claim("claim-1", "https://example.com/claims/1", [1; 32]);
         let repository = StubClaimRepository {
             insert_error: Some(ClaimRepositoryError::DuplicateIri(
-                "https://example.com/claims/1".to_string(),
+                ClaimIri::new("https://example.com/claims/1").unwrap(),
             )),
         };
         let mut service = ClaimService::new(repository);
@@ -81,7 +81,9 @@ mod tests {
 
         assert_eq!(
             err,
-            ApplicationError::ClaimIriAlreadyExists("https://example.com/claims/1".to_string())
+            ApplicationError::ClaimIriAlreadyExists(
+                ClaimIri::new("https://example.com/claims/1").unwrap()
+            )
         );
     }
 
@@ -99,7 +101,7 @@ mod tests {
             Ok(None)
         }
 
-        fn insert_claim(&mut self, _claim: Claim) -> ClaimRepositoryResult<()> {
+        fn insert_claim(&self, _claim: Claim) -> ClaimRepositoryResult<()> {
             match self.insert_error.clone() {
                 Some(error) => Err(error),
                 None => Ok(()),

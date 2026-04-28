@@ -1,7 +1,9 @@
 use std::{collections::BTreeMap, sync::RwLock};
 
 use crate::{
-    application::{ClaimRepository, ClaimRepositoryError, ClaimRepositoryResult},
+    application::{
+        ClaimRepository, ClaimRepositoryError, ClaimRepositoryOperation, ClaimRepositoryResult,
+    },
     domain::{Claim, ClaimId, ClaimIri},
 };
 
@@ -24,13 +26,25 @@ impl InMemoryClaimRepository {
 
 impl ClaimRepository for InMemoryClaimRepository {
     fn get_claim(&self, claim_id: &ClaimId) -> ClaimRepositoryResult<Option<Claim>> {
-        let state = self.state.read().unwrap();
+        let state = self
+            .state
+            .read()
+            .map_err(|_| ClaimRepositoryError::BackendFailed {
+                operation: ClaimRepositoryOperation::GetClaim,
+                message: "in-memory repository lock poisoned".to_string(),
+            })?;
 
         Ok(state.claims_by_id.get(claim_id).cloned())
     }
 
     fn get_claim_by_iri(&self, claim_iri: &ClaimIri) -> ClaimRepositoryResult<Option<Claim>> {
-        let state = self.state.read().unwrap();
+        let state = self
+            .state
+            .read()
+            .map_err(|_| ClaimRepositoryError::BackendFailed {
+                operation: ClaimRepositoryOperation::GetClaimByIri,
+                message: "in-memory repository lock poisoned".to_string(),
+            })?;
         let Some(claim_id) = state.claim_ids_by_iri.get(claim_iri) else {
             return Ok(None);
         };
@@ -39,20 +53,22 @@ impl ClaimRepository for InMemoryClaimRepository {
     }
 
     fn insert_claim(&self, claim: Claim) -> ClaimRepositoryResult<()> {
-        let mut state = self.state.write().unwrap();
+        let mut state = self
+            .state
+            .write()
+            .map_err(|_| ClaimRepositoryError::BackendFailed {
+                operation: ClaimRepositoryOperation::InsertClaim,
+                message: "in-memory repository lock poisoned".to_string(),
+            })?;
         let claim_id = claim.id().clone();
         let claim_iri = claim.iri().clone();
 
         if state.claims_by_id.contains_key(&claim_id) {
-            return Err(ClaimRepositoryError::DuplicateId(
-                claim_id.as_str().to_string(),
-            ));
+            return Err(ClaimRepositoryError::DuplicateId(claim_id));
         }
 
         if state.claim_ids_by_iri.contains_key(&claim_iri) {
-            return Err(ClaimRepositoryError::DuplicateIri(
-                claim_iri.as_str().to_string(),
-            ));
+            return Err(ClaimRepositoryError::DuplicateIri(claim_iri));
         }
 
         state.claim_ids_by_iri.insert(claim_iri, claim_id.clone());
@@ -132,7 +148,7 @@ mod tests {
 
         assert_eq!(
             err,
-            ClaimRepositoryError::DuplicateId("claim-1".to_string())
+            ClaimRepositoryError::DuplicateId(ClaimId::new("claim-1"))
         );
     }
 
@@ -148,7 +164,9 @@ mod tests {
 
         assert_eq!(
             err,
-            ClaimRepositoryError::DuplicateIri("https://example.com/claims/1".to_string())
+            ClaimRepositoryError::DuplicateIri(
+                ClaimIri::new("https://example.com/claims/1").unwrap()
+            )
         );
     }
 

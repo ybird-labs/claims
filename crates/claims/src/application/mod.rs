@@ -3,10 +3,13 @@
 //! Use cases, commands, queries, and side-effecting ports belong here.
 //! Infrastructure implements the ports; domain stays pure.
 //!
-mod claims;
+mod claim_service;
 mod error;
 mod ports;
 
-pub use claims::ClaimService;
-pub use error::{ApplicationError, ApplicationResult};
+pub use claim_service::ClaimService;
+pub use error::{
+    ApplicationError, ApplicationResult, ClaimRepositoryError, ClaimRepositoryOperation,
+    ClaimRepositoryResult,
+};
 pub use ports::ClaimRepository;
