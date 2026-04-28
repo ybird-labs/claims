@@ -1,5 +1,45 @@
 use super::{AssertedContent, AssertionProvenance, ClaimFingerprint, ClaimId, ClaimIri};
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ClaimCandidate {
+    asserted_content: AssertedContent,
+    provenance: AssertionProvenance,
+}
+
+impl ClaimCandidate {
+    pub fn new(asserted_content: AssertedContent, provenance: AssertionProvenance) -> Self {
+        Self {
+            asserted_content,
+            provenance,
+        }
+    }
+
+    pub fn asserted_content(&self) -> &AssertedContent {
+        &self.asserted_content
+    }
+
+    pub fn provenance(&self) -> &AssertionProvenance {
+        &self.provenance
+    }
+
+    /// Builds a claim value while keeping this candidate available.
+    ///
+    /// This clones the candidate's committed fields. Use this when callers still
+    /// need to inspect or reuse the candidate after deriving the claim value.
+    pub fn to_claim_value(&self, iri: ClaimIri) -> ClaimValue {
+        ClaimValue::new(iri, self.asserted_content.clone(), self.provenance.clone())
+    }
+
+    /// Converts this candidate into a claim value.
+    ///
+    /// This consumes the candidate and moves its committed fields into the claim
+    /// value without cloning. Use this for one-way admission flows where the
+    /// candidate is no longer needed after conversion.
+    pub fn into_claim_value(self, iri: ClaimIri) -> ClaimValue {
+        ClaimValue::new(iri, self.asserted_content, self.provenance)
+    }
+}
+
 /// Immutable claim value committed to by a [`ClaimFingerprint`].
 ///
 /// `ClaimValue` contains the domain fields that participate in claim-value
@@ -83,12 +123,53 @@ impl Claim {
 
 #[cfg(test)]
 mod tests {
-    use super::{Claim, ClaimValue};
+    use super::{Claim, ClaimCandidate, ClaimValue};
     use crate::domain::{
         AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
         CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimFingerprint, ClaimId, ClaimIri,
         DateTimeUtc, Sha256Digest,
     };
+
+    #[test]
+    fn claim_candidate_preserves_committed_fields() {
+        let content = asserted_content();
+        let provenance = assertion_provenance();
+
+        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+
+        assert_eq!(candidate.asserted_content(), &content);
+        assert_eq!(candidate.provenance(), &provenance);
+    }
+
+    #[test]
+    fn claim_candidate_to_claim_value() {
+        let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
+        let content = asserted_content();
+        let provenance = assertion_provenance();
+
+        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+
+        let value = candidate.to_claim_value(iri.clone());
+
+        assert_eq!(value.iri(), &iri);
+        assert_eq!(value.asserted_content(), &content);
+        assert_eq!(value.provenance(), &provenance);
+    }
+
+    #[test]
+    fn claim_candidate_into_claim_value() {
+        let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
+        let content = asserted_content();
+        let provenance = assertion_provenance();
+
+        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+
+        let value = candidate.into_claim_value(iri.clone());
+
+        assert_eq!(value.iri(), &iri);
+        assert_eq!(value.asserted_content(), &content);
+        assert_eq!(value.provenance(), &provenance);
+    }
 
     #[test]
     fn claim_value_preserves_committed_fields() {
