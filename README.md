@@ -36,3 +36,8 @@ The Claims Engine provides a shared substrate where evidence can be authored onc
 - Portable evidence across programs
 - Blockchain anchoring for integrity, not data storage
 - Recursion from raw evidence to products and governance actions
+
+
+## Aknowledgements
+
+This project is based on Sams and Austin's Claims Engine Paper.
