@@ -1,4 +1,4 @@
-use super::{AssertedContent, AssertionProvenance, ClaimFingerprint, ClaimId, ClaimIri};
+use super::{AssertedContent, AssertionProvenance, ClaimId, ClaimIri};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ClaimCandidate {
@@ -40,12 +40,12 @@ impl ClaimCandidate {
     }
 }
 
-/// Immutable claim value committed to by a [`ClaimFingerprint`].
+/// Immutable claim value from which a claim fingerprint can be derived.
 ///
 /// `ClaimValue` contains the domain fields that participate in claim-value
 /// fingerprinting: the canonical Claim IRI, canonical asserted content, and
-/// assertion provenance. It intentionally excludes the fingerprint itself and
-/// local engine metadata such as storage identity or submitted material.
+/// assertion provenance. It intentionally excludes local engine metadata such as
+/// storage identity or submitted material.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ClaimValue {
     iri: ClaimIri,
@@ -79,21 +79,16 @@ impl ClaimValue {
     }
 }
 
-/// Accepted durable claim with local identity, immutable value, and fingerprint.
+/// Accepted durable claim with local identity and immutable value.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Claim {
     id: ClaimId,
     value: ClaimValue,
-    fingerprint: ClaimFingerprint,
 }
 
 impl Claim {
-    pub fn new(id: ClaimId, value: ClaimValue, fingerprint: ClaimFingerprint) -> Self {
-        Self {
-            id,
-            value,
-            fingerprint,
-        }
+    pub fn new(id: ClaimId, value: ClaimValue) -> Self {
+        Self { id, value }
     }
 
     pub fn id(&self) -> &ClaimId {
@@ -115,10 +110,6 @@ impl Claim {
     pub fn provenance(&self) -> &AssertionProvenance {
         self.value.provenance()
     }
-
-    pub fn fingerprint(&self) -> &ClaimFingerprint {
-        &self.fingerprint
-    }
 }
 
 #[cfg(test)]
@@ -126,8 +117,7 @@ mod tests {
     use super::{Claim, ClaimCandidate, ClaimValue};
     use crate::domain::{
         AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-        CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimFingerprint, ClaimId, ClaimIri,
-        DateTimeUtc, Sha256Digest,
+        CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimId, ClaimIri, DateTimeUtc,
     };
 
     #[test]
@@ -185,25 +175,21 @@ mod tests {
     }
 
     #[test]
-    fn claim_preserves_identity_value_and_fingerprint() {
+    fn claim_preserves_identity_and_value() {
         let id = ClaimId::new("claim-1");
         let value = ClaimValue::new(
             ClaimIri::new("https://example.com/claims/1").unwrap(),
             asserted_content(),
             assertion_provenance(),
         );
-        let fingerprint = ClaimFingerprint::claim_value_rdfc10_canonical_nquads_utf8_sha256_v1(
-            Sha256Digest::new([7; 32]),
-        );
 
-        let claim = Claim::new(id.clone(), value.clone(), fingerprint);
+        let claim = Claim::new(id.clone(), value.clone());
 
         assert_eq!(claim.id(), &id);
         assert_eq!(claim.value(), &value);
         assert_eq!(claim.iri(), value.iri());
         assert_eq!(claim.asserted_content(), value.asserted_content());
         assert_eq!(claim.provenance(), value.provenance());
-        assert_eq!(claim.fingerprint(), &fingerprint);
     }
 
     fn asserted_content() -> AssertedContent {

@@ -4,6 +4,7 @@ Date: 2026-04-25
 
 This document captures the current abstract domain model for the Claims Engine.
 It is a design-understanding document, not an implementation plan.
+It preserves a two-source basis: this current domain model and `design/original_paper.md`.
 
 ## 1. Core premise
 
@@ -24,7 +25,7 @@ Claim =
   canonical ClaimIRI
   canonical asserted semantic content
   assertion provenance
-  Claim fingerprint
+  derivable canonical Claim fingerprint
 ```
 
 Where:
@@ -119,11 +120,11 @@ file
 
 Submitted material may be preserved as ingestion/audit evidence.
 
-Submitted material may have its own fingerprint if exact received bytes need to be proven, but that is distinct from the Claim fingerprint.
+Submitted material may have its own fingerprint if exact received bytes need to be proven, but that is distinct from the derivable Claim fingerprint.
 
 ```text
 submitted material fingerprint = exact received representation
-Claim fingerprint = accepted semantic Claim value
+Claim fingerprint = digest derived from accepted semantic Claim value
 ```
 
 ## 6. Assertion provenance
@@ -180,9 +181,9 @@ If local time or timezone context is itself meaningful, it belongs in asserted s
 
 ## 7. Claim fingerprint
 
-A **Claim fingerprint** is a cryptographic commitment to the full immutable Claim value, excluding the fingerprint field itself.
+A **Claim fingerprint** is a derivable canonical cryptographic digest over the full immutable Claim value. It is computed from the canonical Claim value; it is not unconditional intrinsic stored state and is not part of its own preimage.
 
-It commits to:
+Its computation covers:
 
 ```text
 canonical ClaimIRI
@@ -191,7 +192,7 @@ canonical assertor identifier / IRI-equivalent
 canonical asserted_at instant
 ```
 
-It does not commit to:
+Its computation does not cover:
 
 ```text
 the fingerprint field itself
@@ -206,6 +207,18 @@ API request id
 
 Identity is part of the Claim fingerprint because identity is part of the Claim.
 
+By itself, the fingerprint is recomputable from the same canonical Claim value. It supports trust or integrity checks only when compared to an independent commitment, such as:
+
+```text
+local immutable admission record
+package digest
+external anchor
+attestation
+signature
+```
+
+The commitment preimage remains the canonical ClaimIRI, canonical asserted content, canonical assertor, and canonical asserted_at. The exact canonicalization profile and digest suite remain unresolved.
+
 ## 8. Claim acceptance and durable admission
 
 Submitted material becomes a Claim only after durable admission into the authoritative claim record.
@@ -217,7 +230,7 @@ canonical ClaimIRI
 non-empty canonical asserted semantic content
 assertor
 asserted_at
-Claim fingerprint
+derivable canonical Claim fingerprint
 durable admission
 ```
 
@@ -325,7 +338,7 @@ Structurally:
 Snapshot =
   canonical SnapshotIRI
   non-empty duplicate-free unordered set of canonical ClaimIRIs
-  Snapshot fingerprint
+  derivable canonical Snapshot fingerprint
 ```
 
 Snapshot membership is by canonical `ClaimIRI`, not local-only ID.
@@ -414,16 +427,16 @@ If different labels, purposes, releases, or descriptions are needed, those shoul
 
 ## 15. Snapshot fingerprint
 
-A **Snapshot fingerprint** is a cryptographic commitment to the full immutable Snapshot value, excluding the fingerprint field itself.
+A **Snapshot fingerprint** is a derivable canonical cryptographic digest over the full immutable Snapshot value. It is computed from the canonical Snapshot value; it is not unconditional intrinsic stored state and is not part of its own preimage.
 
-It commits to:
+Its computation covers:
 
 ```text
 canonical SnapshotIRI
 canonical sorted duplicate-free non-empty set of canonical ClaimIRIs
 ```
 
-It does not commit to:
+Its computation does not cover:
 
 ```text
 the fingerprint field itself
@@ -432,11 +445,47 @@ Claim fingerprints
 operational state
 ```
 
-Claim contents are verified through Claim fingerprints.
+Claim contents are checked through recomputed Claim fingerprints compared against independent Claim commitments.
 
-Snapshot membership is verified through the Snapshot fingerprint.
+Snapshot membership is checked through a recomputed Snapshot fingerprint compared against an independent Snapshot commitment.
 
-## 16. Relationships
+For this domain model, a Snapshot is narrowly:
+
+```text
+canonical SnapshotIRI
+duplicate-free unordered ClaimIRI set
+```
+
+The broader paper concept of a snapshot/checkpoint maps to:
+
+```text
+Domain Snapshot + SnapshotCommitment/SnapshotAttestation
+```
+
+## 16. Commitments, anchors, and attestations
+
+Fingerprints, commitments, anchors, attestations, and validation are separate concepts.
+
+```text
+fingerprint = what is committed to
+commitment/anchor/attestation = where, by whom, and when it was committed
+validation = schema/process judgment about the Claim, Snapshot, or graph state
+```
+
+A **ClaimCommitment** or **ClaimAttestation** records an independent commitment to a Claim fingerprint. It is useful for portable assertion-level integrity because the Claim fingerprint can be recomputed elsewhere and compared to the committed value.
+
+A **SnapshotCommitment** or **SnapshotAttestation** records an independent commitment to a Snapshot fingerprint. It is useful for bounded evidence-set or checkpoint integrity because the Snapshot fingerprint can be recomputed from the SnapshotIRI and canonical membership set and compared to the committed value.
+
+ClaimAttestation and SnapshotAttestation are complementary:
+
+```text
+ClaimAttestation = portable assertion-level commitment
+SnapshotAttestation = bounded evidence-set/checkpoint commitment
+```
+
+Neither kind of attestation is the same as validation. Validation is a separate schema, process, or authority judgment over content, membership, or graph state.
+
+## 17. Relationships
 
 There is no separate `Relationship` primitive at this abstraction level.
 
@@ -463,7 +512,7 @@ We need to later discuss:
 
 > What constraints, if any, exist on asserted semantic content vocabulary and required shapes?
 
-## 17. L0 and graph projections
+## 18. L0 and graph projections
 
 Accepted Claims are the source of truth.
 
@@ -499,7 +548,7 @@ and:
 metadata about the Claim
 ```
 
-## 18. Asserted content vs provenance
+## 19. Asserted content vs provenance
 
 A Claim has two distinct parts:
 
@@ -524,7 +573,7 @@ Simple rule:
 
 > Do not confuse the thing said with the record of saying it.
 
-## 19. External/source identifiers
+## 20. External/source identifiers
 
 The canonical `ClaimIRI` identifies:
 
@@ -557,16 +606,16 @@ provenance
 identity mapping
 ```
 
-## 20. Core invariants
+## 21. Core invariants
 
 ```text
 1. ClaimIRI is permanent once accepted.
 
 2. ClaimIRI identifies the Claim itself, not merely a graph.
 
-3. Claim fingerprint excludes the fingerprint field itself.
+3. Claim fingerprint is derivable from the canonical Claim value and excludes itself.
 
-4. Snapshot fingerprint excludes the fingerprint field itself.
+4. Snapshot fingerprint is derivable from the canonical Snapshot value and excludes itself.
 
 5. Assertor is a stable canonical semantic identity, IRI / IRI-equivalent.
 
@@ -584,12 +633,16 @@ identity mapping
 
 12. Same Snapshot membership resolves to same SnapshotIRI.
 
-13. L0 is derived from accepted Claims, not source of truth.
+13. Fingerprints provide trust/integrity only when compared to independent commitments, anchors, attestations, signatures, or immutable admission records.
 
-14. Asserted content, provenance, and system audit metadata remain distinct.
+14. Domain Snapshot is canonical SnapshotIRI plus duplicate-free unordered ClaimIRI set; paper snapshot/checkpoint is Domain Snapshot plus SnapshotCommitment/SnapshotAttestation.
+
+15. L0 is derived from accepted Claims, not source of truth.
+
+16. Asserted content, provenance, and system audit metadata remain distinct.
 ```
 
-## 21. Remaining ambiguities / revisit later
+## 22. Remaining ambiguities / revisit later
 
 ```text
 1. Exact RDF canonicalization method/version.
@@ -604,23 +657,33 @@ identity mapping
 
 6. Content vocabulary constraints and required shapes.
 
-7. Whether provenance/signature/authority concepts expand beyond assertor/asserted_at.
+7. Exact canonicalization profile and digest suite for Claim/Snapshot fingerprints.
 
-8. How submitted material/audit evidence is retained and fingerprinted.
+8. Whether provenance/signature/authority concepts expand beyond assertor/asserted_at.
 
-9. Exact physical/query representation of L0 and metadata projections.
+9. How submitted material/audit evidence is retained and fingerprinted.
+
+10. Exact physical/query representation of L0 and metadata projections.
 ```
 
-## 22. Compact definition
+## 23. Compact definition
 
 ```text
 A Claim is an immutable accepted semantic assertion with provenance.
 It has canonical ClaimIRI, non-empty canonical RDF-compatible asserted content,
-mandatory assertor/asserted_at provenance, and a Claim fingerprint.
+mandatory assertor/asserted_at provenance, and a derivable canonical Claim
+fingerprint.
 
 A Snapshot is a stable named selection of immutable Claim references.
 It has canonical SnapshotIRI, a non-empty duplicate-free unordered set of
-canonical ClaimIRIs, and a Snapshot fingerprint.
+canonical ClaimIRIs, and a derivable canonical Snapshot fingerprint.
+
+Fingerprints are recomputable digests over canonical values. They support
+trust or integrity when compared to independent commitments, anchors,
+attestations, signatures, or immutable admission records.
+
+Claim attestations provide portable assertion-level commitment. Snapshot
+attestations provide bounded evidence-set/checkpoint commitment.
 
 The L0 claim graph is the canonical semantic projection over accepted Claims.
 

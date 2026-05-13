@@ -84,8 +84,8 @@ mod tests {
         application::{ClaimRepository, ClaimRepositoryError},
         domain::{
             AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-            CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimFingerprint, ClaimId,
-            ClaimIri, ClaimValue, DateTimeUtc, Sha256Digest,
+            CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimId, ClaimIri, ClaimValue,
+            DateTimeUtc,
         },
     };
 
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn inserts_and_gets_claim_by_id() {
         let repository = InMemoryClaimRepository::new();
-        let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let claim = make_claim("claim-1", "https://example.com/claims/1");
 
         repository.insert_claim(claim.clone()).unwrap();
 
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn inserts_and_gets_claim_by_iri() {
         let repository = InMemoryClaimRepository::new();
-        let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let claim = make_claim("claim-1", "https://example.com/claims/1");
 
         repository.insert_claim(claim.clone()).unwrap();
 
@@ -139,8 +139,8 @@ mod tests {
     #[test]
     fn duplicate_claim_id_is_rejected() {
         let repository = InMemoryClaimRepository::new();
-        let first = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
-        let duplicate_id = make_claim("claim-1", "https://example.com/claims/2", [2; 32]);
+        let first = make_claim("claim-1", "https://example.com/claims/1");
+        let duplicate_id = make_claim("claim-1", "https://example.com/claims/2");
 
         repository.insert_claim(first.clone()).unwrap();
 
@@ -167,8 +167,8 @@ mod tests {
     #[test]
     fn duplicate_claim_iri_is_rejected() {
         let repository = InMemoryClaimRepository::new();
-        let first = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
-        let duplicate_iri = make_claim("claim-2", "https://example.com/claims/1", [2; 32]);
+        let first = make_claim("claim-1", "https://example.com/claims/1");
+        let duplicate_iri = make_claim("claim-2", "https://example.com/claims/1");
 
         repository.insert_claim(first.clone()).unwrap();
 
@@ -191,16 +191,13 @@ mod tests {
         assert_eq!(repository.get_claim(duplicate_iri.id()).unwrap(), None);
     }
 
-    fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
+    fn make_claim(id: &str, iri: &str) -> Claim {
         Claim::new(
             ClaimId::new(id),
             ClaimValue::new(
                 ClaimIri::new(iri).unwrap(),
                 asserted_content(),
                 assertion_provenance(),
-            ),
-            ClaimFingerprint::claim_value_rdfc10_canonical_nquads_utf8_sha256_v1(
-                Sha256Digest::new(digest),
             ),
         )
     }

@@ -1,9 +1,9 @@
-/// Cryptographic commitment to an immutable [`ClaimValue`](crate::domain::ClaimValue).
+/// Derivable cryptographic digest of an immutable [`ClaimValue`](crate::domain::ClaimValue).
 ///
-/// A claim-value fingerprint commits to the canonical Claim IRI, canonical
+/// A claim-value fingerprint is derived from the canonical Claim IRI, canonical
 /// asserted RDF dataset, canonical assertor IRI, and canonical `asserted_at`
-/// instant. It excludes the fingerprint field itself, submitted material,
-/// ingestion metadata, storage identity, and other operational metadata.
+/// instant. It excludes submitted material, ingestion metadata, storage identity,
+/// and other operational metadata.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct ClaimFingerprint {
     suite: ClaimFingerprintSuite,
@@ -38,7 +38,7 @@ pub enum ClaimFingerprintSuite {
     ClaimValueRdfc10CanonicalNQuadsUtf8Sha256V1,
 }
 
-/// Cryptographic commitment to an immutable snapshot value.
+/// Derivable cryptographic digest of an immutable snapshot value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct SnapshotFingerprint {
     suite: SnapshotFingerprintSuite,
@@ -73,7 +73,7 @@ pub enum SnapshotFingerprintSuite {
     SnapshotMembershipCanonicalClaimIrisUtf8Sha256V1,
 }
 
-/// Cryptographic commitment to exact submitted material representation.
+/// Derivable cryptographic digest of exact submitted material representation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct SubmittedMaterialFingerprint {
     suite: SubmittedMaterialFingerprintSuite,
