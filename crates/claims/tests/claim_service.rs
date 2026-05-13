@@ -2,8 +2,8 @@ use claims::{
     application::{ApplicationError, ClaimService},
     domain::{
         AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimFingerprint, ClaimId,
-        ClaimIri, ClaimValue, DateTimeUtc, Sha256Digest,
+        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimId, ClaimIri, ClaimValue,
+        DateTimeUtc,
     },
     infrastructure::InMemoryClaimRepository,
 };
@@ -12,7 +12,7 @@ use claims::{
 fn claim_service_inserts_and_reads_claim_through_in_memory_repository() {
     let repository = InMemoryClaimRepository::new();
     let service = ClaimService::new(repository);
-    let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+    let claim = make_claim("claim-1", "https://example.com/claims/1");
 
     service.insert_claim(claim.clone()).unwrap();
     assert_eq!(service.get_claim(claim.id()).unwrap(), Some(claim.clone()));
@@ -23,7 +23,7 @@ fn claim_service_inserts_and_reads_claim_through_in_memory_repository() {
 fn claim_service_inserts_same_claim_twice() {
     let repository = InMemoryClaimRepository::new();
     let service = ClaimService::new(repository);
-    let claim = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+    let claim = make_claim("claim-1", "https://example.com/claims/1");
 
     service.insert_claim(claim.clone()).unwrap();
     let err = service.insert_claim(claim.clone()).unwrap_err();
@@ -41,7 +41,7 @@ fn claim_service_get_unknown_claim() {
     assert_eq!(service.get_claim(&claim_id).unwrap(), None);
 }
 
-fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
+fn make_claim(id: &str, iri: &str) -> Claim {
     Claim::new(
         ClaimId::new(id),
         ClaimValue::new(
@@ -49,9 +49,6 @@ fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
             asserted_content(),
             assertion_provenance(),
         ),
-        ClaimFingerprint::claim_value_rdfc10_canonical_nquads_utf8_sha256_v1(Sha256Digest::new(
-            digest,
-        )),
     )
 }
 

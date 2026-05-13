@@ -42,8 +42,8 @@ where
 mod tests {
     use crate::domain::{
         AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimFingerprint, ClaimId,
-        ClaimIri, ClaimValue, DateTimeUtc, Sha256Digest,
+        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimId, ClaimIri, ClaimValue,
+        DateTimeUtc,
     };
 
     use crate::application::{
@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn insert_claim_maps_late_duplicate_id_to_claim_already_exists() {
-        let candidate = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let candidate = make_claim("claim-1", "https://example.com/claims/1");
         let repository = StubClaimRepository {
             insert_error: Some(ClaimRepositoryError::DuplicateId(ClaimId::new("claim-1"))),
         };
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn insert_claim_maps_late_duplicate_iri_to_claim_iri_already_exists() {
-        let candidate = make_claim("claim-1", "https://example.com/claims/1", [1; 32]);
+        let candidate = make_claim("claim-1", "https://example.com/claims/1");
         let repository = StubClaimRepository {
             insert_error: Some(ClaimRepositoryError::DuplicateIri(
                 ClaimIri::new("https://example.com/claims/1").unwrap(),
@@ -109,16 +109,13 @@ mod tests {
         }
     }
 
-    fn make_claim(id: &str, iri: &str, digest: [u8; 32]) -> Claim {
+    fn make_claim(id: &str, iri: &str) -> Claim {
         Claim::new(
             ClaimId::new(id),
             ClaimValue::new(
                 ClaimIri::new(iri).unwrap(),
                 asserted_content(),
                 assertion_provenance(),
-            ),
-            ClaimFingerprint::claim_value_rdfc10_canonical_nquads_utf8_sha256_v1(
-                Sha256Digest::new(digest),
             ),
         )
     }

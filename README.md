@@ -1,8 +1,8 @@
 # Claims Engine
 
-The Claims Engine is an impact accounting framework for creating, validating, and composing verifiable claims.
+The Claims Engine is an impact accounting framework for creating and composing provenance-bearing claim graphs.
 
-It uses linked data, graph-based evidence, attestations, and blockchain anchoring to move impact accounting beyond static documents and into transparent, replayable claim networks.
+It uses linked data, graph-based evidence, snapshot/evidence-set references, and optional commitments, attestations, or anchors to move impact accounting beyond static documents and into transparent, replayable claim networks.
 
 ## Core Idea
 
@@ -16,16 +16,16 @@ A claim may describe evidence, measurement, validation, endorsement, contradicti
 L0 -> L1 -> Ln
 ```
 
-- **L0:** open linked-data claim graph
-- **Snapshots:** stable views of L0 or L0 subset at a specific time
-- **L1:**  schema and protocol-based verification of snapshots 
-- **Ln:** assets, certificates, contracts, governance actions, reports, and triggers derived from validated claims
+- **L0:** open linked-data claim graph with snapshot and evidence-set references
+- **Snapshots:** stable bounded evidence sets of claim references
+- **L1:** schema and protocol-based validation, generally over snapshots but also possible over claims or subgraphs
+- **Ln:** assets, certificates, contracts, governance actions, reports, and triggers derived from claims or validation results
 
 ## Why It Exists
 
 Impact data is fragmented, document-centric, and expensive to verify.
 
-The Claims Engine provides a shared substrate where evidence can be authored once, linked semantically, independently verified, and reused across many programs, schemas, and products.
+The Claims Engine provides a shared substrate where evidence can be authored once, linked semantically, independently validated, committed to, attested, and reused across many programs, schemas, and products.
 
 ## Design Principles
 
@@ -34,10 +34,10 @@ The Claims Engine provides a shared substrate where evidence can be authored onc
 - Schema-specific validation above the base layer
 - Pluggable verification and authority models
 - Portable evidence across programs
-- Blockchain anchoring for integrity, not data storage
+- Commitments, anchors, and attestations for integrity, timestamping, and portability, not truth or validation by themselves
 - Recursion from raw evidence to products and governance actions
 
 
-## Aknowledgements
+## Acknowledgements
 
 This project is based on Sams and Austin's Claims Engine Paper.
