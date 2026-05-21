@@ -16,6 +16,21 @@ clippy:
 
 ci: fmt check clippy test
 
+coverage:
+    cargo llvm-cov --workspace --all-targets --lcov --output-path lcov.info
+
+crap: coverage
+    cargo crap --lcov lcov.info
+
+crap-check: coverage
+    cargo crap --lcov lcov.info --fail-above --threshold 30
+
+crap-baseline: coverage
+    cargo crap --lcov lcov.info --format json --output crap-baseline.json
+
+crap-regression: coverage
+    cargo crap --lcov lcov.info --baseline crap-baseline.json --fail-regression
+
 run *args:
     cargo run {{args}}
 
