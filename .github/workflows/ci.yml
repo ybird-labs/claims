@@ -15,6 +15,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  change-risk:
+    name: Change risk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup show
+
+      - name: Install cargo-llvm-cov and just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,just
+
+      - name: Install cargo-crap
+        run: cargo install cargo-crap --locked
+
+      - name: Run cargo-crap threshold check
+        run: just crap-check
+
   nix-flake:
     name: Nix flake checks
     runs-on: ubuntu-latest
