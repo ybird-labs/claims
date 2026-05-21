@@ -25,15 +25,56 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect source changes
+        id: source-changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files detected."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$changed_files"
+
+          should_run=false
+          while IFS= read -r file; do
+            case "$file" in
+              Cargo.toml|Cargo.lock|flake.nix|flake.lock|justfile|rust-toolchain.toml|crates/*)
+                should_run=true
+                break
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
 
       - name: Install Nix
+        if: steps.source-changes.outputs.should_run == 'true'
         uses: DeterminateSystems/nix-installer-action@v17
 
       - name: Cache Nix store
+        if: steps.source-changes.outputs.should_run == 'true'
         uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: Run cargo-crap threshold check
+        if: steps.source-changes.outputs.should_run == 'true'
         run: nix develop --command just crap-check
+
+      - name: Skip cargo-crap threshold check
+        if: steps.source-changes.outputs.should_run != 'true'
+        run: echo "Skipping change-risk check because this PR does not change Rust/source inputs."
 
   nix-flake:
     name: Nix flake checks
@@ -45,12 +86,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect source changes
+        id: source-changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files detected."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$changed_files"
+
+          should_run=false
+          while IFS= read -r file; do
+            case "$file" in
+              Cargo.toml|Cargo.lock|flake.nix|flake.lock|justfile|rust-toolchain.toml|crates/*)
+                should_run=true
+                break
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
 
       - name: Install Nix
+        if: steps.source-changes.outputs.should_run == 'true'
         uses: DeterminateSystems/nix-installer-action@v17
 
       - name: Cache Nix store
+        if: steps.source-changes.outputs.should_run == 'true'
         uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: Run flake checks
+        if: steps.source-changes.outputs.should_run == 'true'
         run: nix flake check --print-build-logs --keep-going --no-update-lock-file
+
+      - name: Skip flake checks
+        if: steps.source-changes.outputs.should_run != 'true'
+        run: echo "Skipping flake checks because this PR does not change Rust/source inputs."
