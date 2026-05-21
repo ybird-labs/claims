@@ -1,0 +1,88 @@
+name: Auto Merge
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - labeled
+      - unlabeled
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AUTO_MERGE_LABEL: auto_merge
+
+jobs:
+  enable-auto-merge:
+    name: Enable auto-merge
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'auto_merge')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Enable auto-merge for PR
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          current_state="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+
+          if [ "$current_state" = "true" ]; then
+            echo "Auto-merge already enabled for PR #$PR_NUMBER"
+            exit 0
+          fi
+
+          if gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --auto --merge --delete-branch --match-head-commit "$HEAD_SHA"; then
+            echo "Auto-merge enabled for PR #$PR_NUMBER"
+          else
+            echo "Could not enable auto-merge for PR #$PR_NUMBER; this is usually caused by merge conflicts, disabled repository auto-merge, or branch protection restrictions."
+            exit 0
+          fi
+
+  disable-auto-merge:
+    name: Disable auto-merge when label removed
+    if: >-
+      github.event.action == 'unlabeled' &&
+      github.event.label.name == 'auto_merge' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Disable auto-merge for PR
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          current_state="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+
+          if [ "$current_state" != "true" ]; then
+            echo "Auto-merge already disabled for PR #$PR_NUMBER"
+            exit 0
+          fi
+
+          if gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --disable-auto; then
+            echo "Auto-merge disabled for PR #$PR_NUMBER after removing label $AUTO_MERGE_LABEL"
+          else
+            echo "Could not disable auto-merge for PR #$PR_NUMBER."
+            exit 0
+          fi
