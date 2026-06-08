@@ -2,8 +2,8 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum DomainError {
-    #[error("asserted content must not be empty")]
-    EmptyAssertedContent,
+    #[error("claim content must not be empty")]
+    EmptyClaimContent,
 
     #[error("value must be a valid absolute IRI")]
     InvalidAbsoluteIri,

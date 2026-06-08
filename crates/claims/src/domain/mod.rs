@@ -18,9 +18,9 @@ mod iri;
 mod provenance;
 mod time;
 
-pub use claim::{Claim, ClaimCandidate, ClaimValue};
+pub use claim::{Assertion, Claim, ClaimCandidate, ClaimValue};
 pub use content::{
-    AssertedContent, CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset,
+    CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimContent,
 };
 pub use error::DomainError;
 pub use fingerprint::{
