@@ -1,9 +1,9 @@
 use claims::{
     application::{ApplicationError, ClaimService},
     domain::{
-        AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimId, ClaimIri, ClaimValue,
-        DateTimeUtc,
+        AssertedAt, Assertion, AssertionProvenance, AssertorIri, CanonicalNQuads,
+        CanonicalRdfContentEncoding, CanonicalRdfDataset, Claim, ClaimContent, ClaimId, ClaimIri,
+        ClaimValue, DateTimeUtc,
     },
     infrastructure::InMemoryClaimRepository,
 };
@@ -46,18 +46,17 @@ fn make_claim(id: &str, iri: &str) -> Claim {
         ClaimId::new(id),
         ClaimValue::new(
             ClaimIri::new(iri).unwrap(),
-            asserted_content(),
-            assertion_provenance(),
+            Assertion::new(claim_content(), assertion_provenance()),
         ),
     )
 }
 
-fn asserted_content() -> AssertedContent {
+fn claim_content() -> ClaimContent {
     let nquads = CanonicalNQuads::from_canonicalized(
         "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
     )
     .unwrap();
-    AssertedContent::new(CanonicalRdfDataset::new(
+    ClaimContent::new(CanonicalRdfDataset::new(
         CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
         nquads,
     ))

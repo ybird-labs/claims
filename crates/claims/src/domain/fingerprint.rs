@@ -1,7 +1,7 @@
 /// Derivable cryptographic digest of an immutable [`ClaimValue`](crate::domain::ClaimValue).
 ///
 /// A claim-value fingerprint is derived from the canonical Claim IRI, canonical
-/// asserted RDF dataset, canonical assertor IRI, and canonical `asserted_at`
+/// claim-content RDF dataset, canonical assertor IRI, and canonical `asserted_at`
 /// instant. It excludes submitted material, ingestion metadata, storage identity,
 /// and other operational metadata.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

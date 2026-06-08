@@ -1,81 +1,108 @@
-use super::{AssertedContent, AssertionProvenance, ClaimId, ClaimIri};
+use super::{AssertionProvenance, ClaimContent, ClaimId, ClaimIri};
 
+/// Provenance-bearing assertion of canonical claim content.
+///
+/// `Assertion` is the point where pure [`ClaimContent`] becomes something an
+/// assertor said at a particular instant. It intentionally has no claim IRI or
+/// local storage identity; those are added later by [`ClaimValue`] and [`Claim`].
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ClaimCandidate {
-    asserted_content: AssertedContent,
+pub struct Assertion {
+    content: ClaimContent,
     provenance: AssertionProvenance,
 }
 
-impl ClaimCandidate {
-    pub fn new(asserted_content: AssertedContent, provenance: AssertionProvenance) -> Self {
+impl Assertion {
+    pub fn new(content: ClaimContent, provenance: AssertionProvenance) -> Self {
         Self {
-            asserted_content,
+            content,
             provenance,
         }
     }
 
-    pub fn asserted_content(&self) -> &AssertedContent {
-        &self.asserted_content
+    pub fn content(&self) -> &ClaimContent {
+        &self.content
     }
 
     pub fn provenance(&self) -> &AssertionProvenance {
         &self.provenance
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ClaimCandidate {
+    assertion: Assertion,
+}
+
+impl ClaimCandidate {
+    pub fn new(assertion: Assertion) -> Self {
+        Self { assertion }
+    }
+
+    pub fn from_content(content: ClaimContent, provenance: AssertionProvenance) -> Self {
+        Self::new(Assertion::new(content, provenance))
+    }
+
+    pub fn assertion(&self) -> &Assertion {
+        &self.assertion
+    }
+
+    pub fn content(&self) -> &ClaimContent {
+        self.assertion.content()
+    }
+
+    pub fn provenance(&self) -> &AssertionProvenance {
+        self.assertion.provenance()
+    }
 
     /// Builds a claim value while keeping this candidate available.
     ///
-    /// This clones the candidate's committed fields. Use this when callers still
-    /// need to inspect or reuse the candidate after deriving the claim value.
+    /// This clones the candidate's assertion. Use this when callers still need
+    /// to inspect or reuse the candidate after deriving the claim value.
     pub fn to_claim_value(&self, iri: ClaimIri) -> ClaimValue {
-        ClaimValue::new(iri, self.asserted_content.clone(), self.provenance.clone())
+        ClaimValue::new(iri, self.assertion.clone())
     }
 
     /// Converts this candidate into a claim value.
     ///
-    /// This consumes the candidate and moves its committed fields into the claim
-    /// value without cloning. Use this for one-way admission flows where the
-    /// candidate is no longer needed after conversion.
+    /// This consumes the candidate and moves its assertion into the claim value
+    /// without cloning. Use this for one-way admission flows where the candidate
+    /// is no longer needed after conversion.
     pub fn into_claim_value(self, iri: ClaimIri) -> ClaimValue {
-        ClaimValue::new(iri, self.asserted_content, self.provenance)
+        ClaimValue::new(iri, self.assertion)
     }
 }
 
 /// Immutable claim value from which a claim fingerprint can be derived.
 ///
 /// `ClaimValue` contains the domain fields that participate in claim-value
-/// fingerprinting: the canonical Claim IRI, canonical asserted content, and
-/// assertion provenance. It intentionally excludes local engine metadata such as
-/// storage identity or submitted material.
+/// fingerprinting: the canonical Claim IRI and the provenance-bearing assertion
+/// of canonical claim content. It intentionally excludes local engine metadata
+/// such as storage identity or submitted material.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ClaimValue {
     iri: ClaimIri,
-    asserted_content: AssertedContent,
-    provenance: AssertionProvenance,
+    assertion: Assertion,
 }
 
 impl ClaimValue {
-    pub fn new(
-        iri: ClaimIri,
-        asserted_content: AssertedContent,
-        provenance: AssertionProvenance,
-    ) -> Self {
-        Self {
-            iri,
-            asserted_content,
-            provenance,
-        }
+    pub fn new(iri: ClaimIri, assertion: Assertion) -> Self {
+        Self { iri, assertion }
     }
 
     pub fn iri(&self) -> &ClaimIri {
         &self.iri
     }
 
-    pub fn asserted_content(&self) -> &AssertedContent {
-        &self.asserted_content
+    pub fn assertion(&self) -> &Assertion {
+        &self.assertion
+    }
+
+    pub fn content(&self) -> &ClaimContent {
+        self.assertion.content()
     }
 
     pub fn provenance(&self) -> &AssertionProvenance {
-        &self.provenance
+        self.assertion.provenance()
     }
 }
 
@@ -103,8 +130,12 @@ impl Claim {
         self.value.iri()
     }
 
-    pub fn asserted_content(&self) -> &AssertedContent {
-        self.value.asserted_content()
+    pub fn assertion(&self) -> &Assertion {
+        self.value.assertion()
+    }
+
+    pub fn content(&self) -> &ClaimContent {
+        self.value.content()
     }
 
     pub fn provenance(&self) -> &AssertionProvenance {
@@ -114,64 +145,82 @@ impl Claim {
 
 #[cfg(test)]
 mod tests {
-    use super::{Claim, ClaimCandidate, ClaimValue};
+    use super::{Assertion, Claim, ClaimCandidate, ClaimValue};
     use crate::domain::{
-        AssertedAt, AssertedContent, AssertionProvenance, AssertorIri, CanonicalNQuads,
-        CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimId, ClaimIri, DateTimeUtc,
+        AssertedAt, AssertionProvenance, AssertorIri, CanonicalNQuads, CanonicalRdfContentEncoding,
+        CanonicalRdfDataset, ClaimContent, ClaimId, ClaimIri, DateTimeUtc,
     };
 
     #[test]
-    fn claim_candidate_preserves_committed_fields() {
-        let content = asserted_content();
+    fn assertion_preserves_content_and_provenance() {
+        let content = claim_content();
         let provenance = assertion_provenance();
 
-        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+        let assertion = Assertion::new(content.clone(), provenance.clone());
 
-        assert_eq!(candidate.asserted_content(), &content);
+        assert_eq!(assertion.content(), &content);
+        assert_eq!(assertion.provenance(), &provenance);
+    }
+
+    #[test]
+    fn claim_candidate_preserves_assertion() {
+        let assertion = assertion();
+
+        let candidate = ClaimCandidate::new(assertion.clone());
+
+        assert_eq!(candidate.assertion(), &assertion);
+        assert_eq!(candidate.content(), assertion.content());
+        assert_eq!(candidate.provenance(), assertion.provenance());
+    }
+
+    #[test]
+    fn claim_candidate_from_content_builds_assertion() {
+        let content = claim_content();
+        let provenance = assertion_provenance();
+
+        let candidate = ClaimCandidate::from_content(content.clone(), provenance.clone());
+
+        assert_eq!(candidate.content(), &content);
         assert_eq!(candidate.provenance(), &provenance);
     }
 
     #[test]
     fn claim_candidate_to_claim_value() {
         let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
-        let content = asserted_content();
-        let provenance = assertion_provenance();
+        let assertion = assertion();
 
-        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+        let candidate = ClaimCandidate::new(assertion.clone());
 
         let value = candidate.to_claim_value(iri.clone());
 
         assert_eq!(value.iri(), &iri);
-        assert_eq!(value.asserted_content(), &content);
-        assert_eq!(value.provenance(), &provenance);
+        assert_eq!(value.assertion(), &assertion);
     }
 
     #[test]
     fn claim_candidate_into_claim_value() {
         let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
-        let content = asserted_content();
-        let provenance = assertion_provenance();
+        let assertion = assertion();
 
-        let candidate = ClaimCandidate::new(content.clone(), provenance.clone());
+        let candidate = ClaimCandidate::new(assertion.clone());
 
         let value = candidate.into_claim_value(iri.clone());
 
         assert_eq!(value.iri(), &iri);
-        assert_eq!(value.asserted_content(), &content);
-        assert_eq!(value.provenance(), &provenance);
+        assert_eq!(value.assertion(), &assertion);
     }
 
     #[test]
     fn claim_value_preserves_committed_fields() {
         let iri = ClaimIri::new("https://example.com/claims/1").unwrap();
-        let content = asserted_content();
-        let provenance = assertion_provenance();
+        let assertion = assertion();
 
-        let value = ClaimValue::new(iri.clone(), content.clone(), provenance.clone());
+        let value = ClaimValue::new(iri.clone(), assertion.clone());
 
         assert_eq!(value.iri(), &iri);
-        assert_eq!(value.asserted_content(), &content);
-        assert_eq!(value.provenance(), &provenance);
+        assert_eq!(value.assertion(), &assertion);
+        assert_eq!(value.content(), assertion.content());
+        assert_eq!(value.provenance(), assertion.provenance());
     }
 
     #[test]
@@ -179,8 +228,7 @@ mod tests {
         let id = ClaimId::new("claim-1");
         let value = ClaimValue::new(
             ClaimIri::new("https://example.com/claims/1").unwrap(),
-            asserted_content(),
-            assertion_provenance(),
+            assertion(),
         );
 
         let claim = Claim::new(id.clone(), value.clone());
@@ -188,17 +236,22 @@ mod tests {
         assert_eq!(claim.id(), &id);
         assert_eq!(claim.value(), &value);
         assert_eq!(claim.iri(), value.iri());
-        assert_eq!(claim.asserted_content(), value.asserted_content());
+        assert_eq!(claim.assertion(), value.assertion());
+        assert_eq!(claim.content(), value.content());
         assert_eq!(claim.provenance(), value.provenance());
     }
 
-    fn asserted_content() -> AssertedContent {
+    fn assertion() -> Assertion {
+        Assertion::new(claim_content(), assertion_provenance())
+    }
+
+    fn claim_content() -> ClaimContent {
         let nquads = CanonicalNQuads::from_canonicalized(
             "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
         )
         .unwrap();
 
-        AssertedContent::new(CanonicalRdfDataset::new(
+        ClaimContent::new(CanonicalRdfDataset::new(
             CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
             nquads,
         ))

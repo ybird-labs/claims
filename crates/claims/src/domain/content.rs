@@ -1,11 +1,12 @@
 use super::DomainError;
 
+/// Canonical claim content before it has been paired with assertion provenance.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct AssertedContent {
+pub struct ClaimContent {
     canonical_dataset: CanonicalRdfDataset,
 }
 
-impl AssertedContent {
+impl ClaimContent {
     pub fn new(canonical_dataset: CanonicalRdfDataset) -> Self {
         Self { canonical_dataset }
     }
@@ -39,7 +40,7 @@ impl CanonicalNQuads {
         let value = value.into();
 
         if value.trim().is_empty() {
-            return Err(DomainError::EmptyAssertedContent);
+            return Err(DomainError::EmptyClaimContent);
         }
 
         Ok(Self { value })
@@ -54,7 +55,7 @@ impl CanonicalNQuads {
     }
 }
 
-/// Canonical RDF dataset representation for accepted asserted content.
+/// Canonical RDF dataset representation for claim content.
 ///
 /// This type pairs canonical N-Quads with the selected encoding profile. It does
 /// not parse, trim, schema-validate, or canonicalize input by itself.
@@ -93,20 +94,20 @@ pub enum CanonicalRdfContentEncoding {
 
 #[cfg(test)]
 mod tests {
-    use super::{CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset};
+    use super::{CanonicalNQuads, CanonicalRdfContentEncoding, CanonicalRdfDataset, ClaimContent};
 
     #[test]
     fn canonical_nquads_rejects_empty_value() {
         let err = CanonicalNQuads::from_canonicalized("").unwrap_err();
 
-        assert_eq!(err.to_string(), "asserted content must not be empty");
+        assert_eq!(err.to_string(), "claim content must not be empty");
     }
 
     #[test]
     fn canonical_nquads_rejects_whitespace_only_value() {
         let err = CanonicalNQuads::from_canonicalized(" \n\t ").unwrap_err();
 
-        assert_eq!(err.to_string(), "asserted content must not be empty");
+        assert_eq!(err.to_string(), "claim content must not be empty");
     }
 
     #[test]
@@ -117,6 +118,21 @@ mod tests {
 
         assert_eq!(nquads.as_str(), value);
         assert_eq!(nquads.as_bytes(), value.as_bytes());
+    }
+
+    #[test]
+    fn claim_content_exposes_canonical_dataset() {
+        let nquads = CanonicalNQuads::from_canonicalized(
+            "<https://example.com/s> <https://example.com/p> <https://example.com/o> .\n",
+        )
+        .unwrap();
+        let dataset = CanonicalRdfDataset::new(
+            CanonicalRdfContentEncoding::ClaimsRdfc10CanonicalNQuadsUtf8V1,
+            nquads,
+        );
+        let content = ClaimContent::new(dataset.clone());
+
+        assert_eq!(content.canonical_dataset(), &dataset);
     }
 
     #[test]
