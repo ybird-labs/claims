@@ -485,6 +485,11 @@ fn proof(label: &str, title: &str) {
     println!("\n=== PROOF {label}: {title} ===");
 }
 
+/// Print an indented narration line explaining what a proof is about to show.
+fn explain(text: &str) {
+    println!("  | {text}");
+}
+
 fn check(label: &str, condition: bool) {
     assert!(condition, "FAILED: {label}");
     println!("  ok: {label}");
@@ -496,13 +501,26 @@ pub fn run_demo() {
     use crate::snapshot::Snapshot;
 
     println!("Claims Engine spike — carbon-project stress test");
-    println!("Real registration-review data: 2 sites, 4 requirements each");
-    println!("(fixtures generated from ybird-labs/carbon-project; names pseudonymized)");
+    println!();
+    println!("The synthetic demo (plain `cargo run`) proves the engine mechanics.");
+    println!("This demo re-proves them against data the model was never shaped for:");
+    println!("a live carbon-credit registration review (ybird-labs/carbon-project),");
+    println!("with two real sites and four numbered registration requirements whose");
+    println!("real review outcomes span satisfied / not_satisfied / unclear.");
+    println!("Names are pseudonymized; keys, dates, land use, acreages, and plot");
+    println!("registration ids are real. The engine is used unmodified — everything");
+    println!("domain-specific arrives as user-defined claim-type schemas and content.");
 
     let mut world = build_world();
     check("two real sites admitted", world.sites.len() == 2);
 
     proof("C1", "real entities admit through the unchanged L0 floor");
+    explain("Site and plot facts from Airtable/site-index become claims whose");
+    explain("subjects are entity IRIs minted from stable farm/plot keys — entity");
+    explain("identity is claim content (design §8). Who pulled the bytes and when");
+    explain("is witnessed in SubmissionRecords, outside content (§11). The L0");
+    explain("floor (§6.1) and idempotent admission (§7) apply exactly as in the");
+    explain("synthetic demo: same claim value, same ClaimIRI, no duplicates.");
     for site in &world.sites {
         let claim = world
             .store
@@ -531,6 +549,12 @@ pub fn run_demo() {
     );
 
     proof("C2", "a derivation claim walks back to its input ClaimIRIs");
+    explain("The source systems expose no site project start date; the real review");
+    explain("derives one (earliest active soil-sampling date) and records that");
+    explain("caveat in prose notes. Here the derivation is a claim: its content");
+    explain("carries the derived value, the rule IRI, and `derived_from` — the");
+    explain("input ClaimIRIs. Provenance is content (§9), so the projection (§17)");
+    explain("can walk from the derived value back to the exact claims it rests on.");
     let proj = projection(&world);
     for site in &world.sites {
         let walked = objects_in_graph(
@@ -554,6 +578,13 @@ pub fn run_demo() {
     }
 
     proof("C3", "tri-state multi-evidence judgments are ordinary claims");
+    explain("Real review verdicts need more than the engine's binary validation");
+    explain("vocabulary: `unclear` means reviewed-but-evidence-insufficient, and");
+    explain("one verdict rests on many evidence records at once. Both arrive as");
+    explain("user space: a judgment claim-type schema with a tri-state outcome and");
+    explain("an evidence list of ClaimIRIs (§16 relationships). The engine stays");
+    explain("untouched — and its unmodified L1 (§13) validates each judgment claim");
+    explain("against that user-space schema, recording ordinary validation claims.");
     let mut outcomes_seen = BTreeSet::new();
     for site in &world.sites {
         for judgment in &site.judgments {
@@ -602,6 +633,13 @@ pub fn run_demo() {
     );
 
     proof("C4", "one SPARQL query composes trust through the claim chain");
+    explain("Trust composition (§13) generalizes to chains: accept a judge's");
+    explain("satisfied land-tenure judgments (asserted content, named graphs),");
+    explain("follow their evidence links to claims declaring the source-evidence");
+    explain("schema (witnessed metadata, default graph), then read those claims'");
+    explain("asserted LPIS/GSAA registration ids (content again). One standard");
+    explain("SPARQL query crosses all three hops and both projection layers, and");
+    explain("must return exactly what the programmatic walk computes.");
     let graphdb = SparqlProjection::load(&world.store).expect("projection loads");
     let expected = expected_registration_pairs(&world, SL_003, "satisfied");
     let via_sparql = graphdb
@@ -629,6 +667,13 @@ pub fn run_demo() {
     );
 
     proof("C5", "the normative rule version is content: bump = new claim");
+    explain("The checklist itself is versioned (credit class 1.5.2) and will move.");
+    explain("A rule version governs what a verdict means without changing its");
+    explain("payload shape, so it is not an engine schema version — it is content,");
+    explain("per the identity rule (§8). What-if: the same SL-003 judgment is");
+    explain("re-issued under a hypothetical next version, everything else equal.");
+    explain("Content addressing must yield a new coexisting claim, and the version");
+    explain("must be queryable like any other asserted content.");
     let original_iri = world.sites[0]
         .judgments
         .iter()
@@ -673,6 +718,10 @@ pub fn run_demo() {
     );
 
     proof("C6", "an order-independent snapshot over the carbon claims");
+    explain("A registration submission is a bounded evidence set: everything the");
+    explain("review rests on, frozen. A Snapshot (§14) over all carbon claims —");
+    explain("evidence, derivations, judgments, and L1 verdicts — gets its identity");
+    explain("from canonical membership alone, so insertion order cannot matter.");
     let membership: Vec<String> = world
         .store
         .claims()

@@ -1,5 +1,15 @@
 //! Carbon-project stress-test proofs C1–C6, one test per proof, over the
-//! committed fixtures generated from ybird-labs/carbon-project.
+//! committed fixtures generated from ybird-labs/carbon-project (see
+//! `tools/gen_carbon_fixtures.py` and the README's carbon section).
+//!
+//! The world under test is real registration-review data: two sites —
+//! `01.0035.00035` (CZ, 5 plots) and `02.4368.00441` (SK, 2 plots) — each
+//! judged against four numbered requirements (SL-003 land tenure, SL-006
+//! homogeneity, SL-007 project start date, SL-009 historic activity), with
+//! real outcomes spanning satisfied / not_satisfied / unclear. The engine
+//! is exercised unmodified; every expectation is computed through the
+//! pipeline (admissions, projections, SPARQL), never hardcoded as IRI or
+//! fingerprint literals.
 
 use std::collections::BTreeSet;
 use std::sync::{Mutex, OnceLock};
@@ -21,6 +31,15 @@ fn world() -> &'static Mutex<CarbonWorld> {
     WORLD.get_or_init(|| Mutex::new(build_world()))
 }
 
+/// C1 — real entities admit through the unchanged L0 floor.
+///
+/// Source-system facts about real sites become claims whose subject IRIs
+/// are minted from the stable farm keys (entity identity is claim content,
+/// design §8), verified by finding the site IRI inside the canonical
+/// N-Quads. Resubmitting the same bytes must be idempotent (§7): the same
+/// ClaimIRI comes back, nothing is newly admitted, and both submissions are
+/// witnessed as separate audit records (§11) — the ingest agent appears
+/// there, never in content.
 #[test]
 fn c1_real_entities_admit_through_the_unchanged_floor() {
     let world = world().lock().unwrap();
@@ -51,6 +70,15 @@ fn c1_real_entities_admit_through_the_unchanged_floor() {
     }
 }
 
+/// C2 — a derivation claim walks back to its input ClaimIRIs.
+///
+/// The real review derives each site's project start date from its earliest
+/// active soil-sampling record and records that caveat in prose notes. Here
+/// the derivation is structured content: a claim carrying the value, the
+/// rule IRI, and `derived_from` input ClaimIRIs (provenance is content,
+/// §9). The test walks the L0 projection from each derivation claim's named
+/// graph back through `derived_from`, and requires the walked set to equal
+/// the ClaimIRIs actually admitted as inputs — every one resolvable in L0.
 #[test]
 fn c2_derivation_walks_back_to_its_inputs() {
     let world = world().lock().unwrap();
@@ -78,6 +106,18 @@ fn c2_derivation_walks_back_to_its_inputs() {
     }
 }
 
+/// C3 — tri-state, multi-evidence judgments are ordinary claims.
+///
+/// Real review verdicts don't fit the engine's binary validation
+/// vocabulary: `unclear` (reviewed, evidence insufficient) is a first-class
+/// outcome, and one verdict cites many evidence records. Both are user
+/// space. The test checks each judgment claim: admitted through the normal
+/// path, declaring the user-space judgment schema, citing ≥2 evidence
+/// ClaimIRIs in its content (projected exactly as recorded), and validated
+/// as conformant by the *unmodified* L1 against that user-space schema.
+/// The real data must span all three outcomes, while the engine-published
+/// validation-result vocabulary must still read exactly
+/// `["conforms", "violations"]` — proving nothing engine-side was widened.
 #[test]
 fn c3_tri_state_multi_evidence_judgments_are_ordinary_claims() {
     let world = world().lock().unwrap();
@@ -127,6 +167,16 @@ fn c3_tri_state_multi_evidence_judgments_are_ordinary_claims() {
     );
 }
 
+/// C4 — one SPARQL query composes trust through the claim chain.
+///
+/// Trust composition (§13) generalized to chains: accept the judge's
+/// satisfied SL-003 (land tenure) judgments, follow their `evidence` links,
+/// and read the cited claims' asserted plot registration ids. The single
+/// query crosses three hops and both projection layers — judgment content
+/// in named graphs, the witnessed `declaresSchema` join in the default
+/// graph, evidence content in named graphs again. Its result must equal
+/// the programmatically computed (evidence ClaimIRI, registration id)
+/// pairs, be non-empty, and reach plot evidence from both real sites.
 #[test]
 fn c4_sparql_composes_trust_through_the_claim_chain() {
     let world = world().lock().unwrap();
@@ -155,6 +205,17 @@ fn c4_sparql_composes_trust_through_the_claim_chain() {
     }
 }
 
+/// C5 — the normative rule version is content, so a bump is a new claim.
+///
+/// The credit-class version governs what a verdict *means* without changing
+/// its payload shape; per the identity rule (§8) it lives in asserted
+/// content, not in the engine's schema-version machinery. The test
+/// re-issues site 1's SL-003 judgment byte-identical except for
+/// `credit_class_version` ("1.5.2" → hypothetical "1.6.0") and requires:
+/// a different ClaimIRI (content addressing sees the version), both claims
+/// coexisting in L0 (no mutation, no supersession), and SPARQL filtering
+/// judgments by version — each version query returning exactly its own
+/// claim set.
 #[test]
 fn c5_rule_version_is_content_so_a_bump_is_a_new_claim() {
     let mut world = world().lock().unwrap();
@@ -193,6 +254,13 @@ fn c5_rule_version_is_content_so_a_bump_is_a_new_claim() {
     assert_eq!(sparql_bumped, [reissued_iri].into_iter().collect());
 }
 
+/// C6 — an order-independent snapshot over the carbon claims.
+///
+/// A registration submission is a bounded evidence set: everything the
+/// review rests on, frozen. Snapshot identity is canonical membership alone
+/// (§14), so snapshotting all carbon claims (evidence, derivations,
+/// judgments, L1 verdicts) in forward and reverse insertion order must
+/// yield the same fingerprint and the same SnapshotIRI.
 #[test]
 fn c6_snapshot_over_the_carbon_claims_is_order_independent() {
     let world = world().lock().unwrap();
@@ -211,10 +279,14 @@ fn c6_snapshot_over_the_carbon_claims_is_order_independent() {
     assert_eq!(forward.iri(), reverse.iri());
 }
 
+/// Guard for the anti-cheat posture of every proof above: nothing in the
+/// pipeline depends on clocks, randomness, or iteration order. Two worlds
+/// built independently from the same committed fixtures must admit exactly
+/// the same claim set — and therefore the same snapshot IRI — making every
+/// C-proof's computed expectation stable run-to-run without a single
+/// hardcoded IRI or fingerprint literal.
 #[test]
 fn world_building_is_deterministic_run_to_run() {
-    // Two independently built worlds admit identical claim sets: all IRIs
-    // are pipeline-computed (no clocks, no randomness), so snapshots agree.
     let world_a = build_world();
     let world_b = build_world();
 
