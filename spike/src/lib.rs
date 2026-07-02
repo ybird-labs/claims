@@ -6,6 +6,7 @@
 //! separation loosely, since proving that boundary is part of its job.
 
 pub mod canon;
+pub mod export;
 pub mod graphdb;
 pub mod identity;
 pub mod l0;

@@ -63,6 +63,30 @@ cargo test    # unit + end-to-end tests
    The store is rebuilt from the claim record on every construction; claims
    remain the only source of truth (see `src/graphdb.rs`).
 
+## Visualize
+
+`cargo run` writes two artifacts to `spike/out/` (gitignored) and prints
+their paths:
+
+- **`graph.html`** — a self-contained interactive view of the L0 projection:
+  force-directed layout, pan/zoom, draggable nodes; click any node for an
+  inspector listing its triples and the named graph (claim) each came from.
+  Claim nodes are colored by verdict status (✓ conforms / ✕ violations /
+  ? unjudged — derived from validation-claim content, not hardcoded);
+  validation claims, statements, entities, and schema versions are visually
+  distinct; metadata edges (`declaresSchema`) are dashed. Everything is
+  inline — open it in any browser, no server or network needed.
+- **`projection.nq`** — the projection as N-Quads, for external tools.
+
+Optional SPARQL workbench (interactive queries in the browser, locally):
+
+```sh
+cargo install oxigraph-cli
+oxigraph load --location /tmp/claims-db --file out/projection.nq
+oxigraph serve --location /tmp/claims-db
+# then open http://localhost:7878 — YASGUI query UI
+```
+
 ## Provisional choices for design doc §20 (open items)
 
 | §20 item | Choice made here |

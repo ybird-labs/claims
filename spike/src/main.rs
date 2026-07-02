@@ -247,5 +247,15 @@ fn main() {
         total_tons == 5,
     );
 
+    let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("out");
+    let (nquads_path, html_path) =
+        claims_spike::export::write_artifacts(&store, &out_dir).expect("artifacts write");
+
     println!("\nALL PROOFS PASSED");
+    println!("\nArtifacts:");
+    println!("  projection (N-Quads): {}", nquads_path.display());
+    println!(
+        "  interactive graph:    {}  (open in any browser)",
+        html_path.display()
+    );
 }

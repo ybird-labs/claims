@@ -261,6 +261,144 @@ fn sparql_projection_answers_trust_and_content_queries() {
     assert_eq!(total, 5);
 }
 
+/// Build the full demo scenario: both carbon claims admitted and judged.
+fn judged_scenario() -> (L0Store, String, String) {
+    let registry = registry();
+    let mut store = L0Store::new();
+    let validator = Validator::new(VALIDATOR_IRI);
+
+    let good = store
+        .admit(
+            MATERIAL_GOOD_A.as_bytes(),
+            "https://people.example/bob",
+            &[CARBON_SCHEMA_IRI],
+            "2026-07-01T08:00:00Z",
+        )
+        .unwrap();
+    let bad = store
+        .admit(
+            MATERIAL_BAD.as_bytes(),
+            "https://people.example/mallory",
+            &[CARBON_SCHEMA_IRI],
+            "2026-07-01T10:15:00Z",
+        )
+        .unwrap();
+    validator
+        .validate(
+            &mut store,
+            &registry,
+            &good.claim_iri,
+            CARBON_SCHEMA_IRI,
+            "2026-07-01T11:00:00Z",
+        )
+        .unwrap();
+    validator
+        .validate(
+            &mut store,
+            &registry,
+            &bad.claim_iri,
+            CARBON_SCHEMA_IRI,
+            "2026-07-01T11:05:00Z",
+        )
+        .unwrap();
+
+    (store, good.claim_iri, bad.claim_iri)
+}
+
+#[test]
+fn graph_export_contains_the_full_story() {
+    let (store, good_iri, bad_iri) = judged_scenario();
+
+    let export = claims_spike::export::graph_export(&store).unwrap();
+    let nodes = export["nodes"].as_array().unwrap();
+    let edges = export["edges"].as_array().unwrap();
+
+    let node = |id: &str| nodes.iter().find(|n| n["id"] == id);
+
+    // Both carbon claim nodes, with statuses derived from verdict content.
+    assert_eq!(node(&good_iri).unwrap()["kind"], "claim");
+    assert_eq!(node(&good_iri).unwrap()["status"], "conforms");
+    assert_eq!(node(&bad_iri).unwrap()["kind"], "claim");
+    assert_eq!(node(&bad_iri).unwrap()["status"], "violations");
+
+    // Both validation claim nodes.
+    let verdicts: Vec<_> = nodes.iter().filter(|n| n["kind"] == "verdict").collect();
+    assert_eq!(verdicts.len(), 2);
+
+    // The verifier entities.
+    assert_eq!(
+        node("https://verifiers.example/alice").unwrap()["kind"],
+        "entity"
+    );
+    assert_eq!(
+        node("https://verifiers.example/mallory").unwrap()["kind"],
+        "entity"
+    );
+
+    // declaresSchema metadata edges for all four claims.
+    let declares: Vec<_> = edges
+        .iter()
+        .filter(|e| e["label"] == "declaresSchema" && e["kind"] == "metadata")
+        .collect();
+    assert_eq!(declares.len(), 4);
+
+    // Verdict edges linking judgments to their target claims.
+    let targets: Vec<_> = edges
+        .iter()
+        .filter(|e| e["label"] == "target_claim")
+        .map(|e| e["target"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(targets.len(), 2);
+    assert!(targets.contains(&good_iri));
+    assert!(targets.contains(&bad_iri));
+}
+
+#[test]
+fn graph_html_is_self_contained() {
+    let (store, _, _) = judged_scenario();
+
+    let html = claims_spike::export::graph_html(&store).unwrap();
+
+    assert!(html.contains("const GRAPH = {"));
+    for forbidden in [
+        "<script src",
+        "<link ",
+        "fetch(",
+        "import(",
+        "XMLHttpRequest",
+    ] {
+        assert!(
+            !html.contains(forbidden),
+            "graph.html must be self-contained, found: {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn projection_nquads_round_trips() {
+    use sophia::api::prelude::*;
+
+    let (store, _, _) = judged_scenario();
+
+    let out_dir = std::env::temp_dir().join(format!("claims-spike-test-{}", std::process::id()));
+    let (nquads_path, html_path) = claims_spike::export::write_artifacts(&store, &out_dir).unwrap();
+
+    let written = std::fs::read_to_string(&nquads_path).unwrap();
+    let reparsed: sophia::inmem::dataset::LightDataset =
+        sophia::turtle::parser::nq::parse_str(&written)
+            .collect_quads()
+            .unwrap();
+    let projection = l0_projection(&store).unwrap();
+    assert_eq!(
+        reparsed.quads().count(),
+        projection.quads().count(),
+        "written N-Quads must round-trip to the same quad count"
+    );
+
+    assert!(html_path.exists());
+    std::fs::remove_dir_all(&out_dir).ok();
+}
+
 #[test]
 fn validating_an_unknown_claim_fails() {
     let registry = registry();

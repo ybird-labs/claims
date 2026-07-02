@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claims Engine — L0 projection</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --surface-2: #f0efec;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #8a8983;
+    --edge-content: #b5b4ac;
+    --edge-metadata: #78776f;
+    --edge-asserts: #cfcec6;
+    --kind-entity: #2a78d6;
+    --kind-statement: #eda100;
+    --kind-verdict: #4a3aa7;
+    --kind-schema: #78776f;
+    --status-good: #0ca30c;
+    --status-critical: #d03b3b;
+    --status-unjudged: #9a9992;
+    --panel-border: #e3e2dd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --surface-2: #383835;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #8a8983;
+      --edge-content: #55544f;
+      --edge-metadata: #8a8983;
+      --edge-asserts: #3c3b38;
+      --kind-entity: #3987e5;
+      --kind-statement: #c98500;
+      --kind-verdict: #9085e9;
+      --kind-schema: #8a8983;
+      --panel-border: #33322f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; background: var(--surface-1); color: var(--text-primary);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  #stage { position: relative; flex: 1; min-width: 0; }
+  #canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  #legend {
+    position: absolute; top: 12px; left: 12px; padding: 10px 14px;
+    background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+    border: 1px solid var(--panel-border); border-radius: 8px;
+    font-size: 12px; color: var(--text-secondary); pointer-events: none;
+  }
+  #legend h1 { margin: 0 0 6px; font-size: 13px; color: var(--text-primary); }
+  #legend .row { display: flex; align-items: center; gap: 7px; margin: 3px 0; }
+  #legend .chip { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  #legend .line { width: 18px; height: 0; border-top: 2px solid var(--edge-content); flex: none; }
+  #legend .line.dashed { border-top-style: dashed; border-top-color: var(--edge-metadata); }
+  #legend .line.dotted { border-top-style: dotted; border-top-color: var(--edge-asserts); }
+  #legend .hint { margin-top: 7px; color: var(--text-muted); }
+  #inspector {
+    width: 380px; flex: none; border-left: 1px solid var(--panel-border);
+    background: var(--surface-1); overflow-y: auto; padding: 16px;
+  }
+  #inspector h2 { margin: 0 0 4px; font-size: 15px; }
+  #inspector .badges { display: flex; gap: 6px; margin: 6px 0 10px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-2); color: var(--text-secondary);
+  }
+  .badge .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  #inspector .iri {
+    font: 11px/1.5 ui-monospace, "SF Mono", Consolas, monospace;
+    color: var(--text-secondary); word-break: break-all;
+    background: var(--surface-2); border-radius: 6px; padding: 8px; margin-bottom: 12px;
+  }
+  #inspector h3 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+  .triple { padding: 7px 0; border-bottom: 1px solid var(--panel-border); font-size: 12.5px; }
+  .triple .p { color: var(--text-primary); font-weight: 600; }
+  .triple .o { color: var(--text-secondary); word-break: break-all; }
+  .triple .g { display: inline-block; margin-top: 3px; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); }
+  #inspector .empty { color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="legend">
+      <h1>Claims Engine — L0 projection</h1>
+      <div class="row"><span class="chip" style="background:var(--status-good)"></span>claim · verdict: conforms ✓</div>
+      <div class="row"><span class="chip" style="background:var(--status-critical)"></span>claim · verdict: violations ✕</div>
+      <div class="row"><span class="chip" style="background:var(--status-unjudged)"></span>claim · unjudged ?</div>
+      <div class="row"><span class="chip" style="background:var(--kind-verdict)"></span>validation claim (verdict)</div>
+      <div class="row"><span class="chip" style="background:var(--kind-statement)"></span>statement (claim content)</div>
+      <div class="row"><span class="chip" style="background:var(--kind-entity)"></span>entity (verifier, site, …)</div>
+      <div class="row"><span class="chip" style="background:var(--kind-schema)"></span>schema version</div>
+      <div class="row"><span class="line"></span>content triple</div>
+      <div class="row"><span class="line dashed"></span>metadata (declaresSchema)</div>
+      <div class="row"><span class="line dotted"></span>claim asserts its content</div>
+      <div class="hint">drag nodes · drag background to pan · scroll to zoom · click a node to inspect</div>
+    </div>
+  </div>
+  <aside id="inspector">
+    <h2>Inspector</h2>
+    <div id="inspector-body" class="empty">Click a node to see its triples and which named graph (claim) each came from.</div>
+  </aside>
+<script>
+"use strict";
+const GRAPH = __GRAPH_DATA__;
+
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const KIND_STYLE = () => ({
+  claim:     { r: 17, color: null },
+  verdict:   { r: 13, color: css("--kind-verdict") },
+  statement: { r: 11, color: css("--kind-statement") },
+  entity:    { r: 11, color: css("--kind-entity") },
+  schema:    { r: 10, color: css("--kind-schema") },
+});
+const STATUS_COLOR = () => ({
+  conforms:   css("--status-good"),
+  violations: css("--status-critical"),
+  unjudged:   css("--status-unjudged"),
+});
+const STATUS_GLYPH = { conforms: "✓", violations: "✕", unjudged: "?" };
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const nodes = GRAPH.nodes;
+const byId = new Map(nodes.map(n => [n.id, n]));
+const edges = GRAPH.edges.filter(e => byId.has(e.source) && byId.has(e.target));
+
+// Deterministic initial layout: kinds on concentric rings.
+const RING = { claim: 60, verdict: 170, statement: 120, entity: 230, schema: 290 };
+nodes.forEach((n, i) => {
+  const angle = (i / nodes.length) * Math.PI * 2 + (n.kind === "claim" ? 0.5 : 0);
+  const radius = RING[n.kind] || 200;
+  n.x = Math.cos(angle) * radius;
+  n.y = Math.sin(angle) * radius;
+  n.vx = 0; n.vy = 0;
+});
+
+let alpha = 1;
+let selected = null, hovered = null, dragNode = null;
+function tick() {
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      let d2 = dx * dx + dy * dy;
+      if (d2 < 1) { d2 = 1; dx = 1; dy = 0; }
+      const f = (9000 / d2) * alpha;
+      const d = Math.sqrt(d2);
+      const ux = dx / d, uy = dy / d;
+      a.vx -= ux * f; a.vy -= uy * f;
+      b.vx += ux * f; b.vy += uy * f;
+    }
+  }
+  for (const e of edges) {
+    const s = byId.get(e.source), t = byId.get(e.target);
+    const dx = t.x - s.x, dy = t.y - s.y;
+    const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+    const f = (d - 130) * 0.02 * alpha;
+    const ux = dx / d, uy = dy / d;
+    s.vx += ux * f; s.vy += uy * f;
+    t.vx -= ux * f; t.vy -= uy * f;
+  }
+  for (const n of nodes) {
+    n.vx -= n.x * 0.004 * alpha;
+    n.vy -= n.y * 0.004 * alpha;
+    if (n === dragNode) { n.vx = 0; n.vy = 0; continue; }
+    n.vx *= 0.85; n.vy *= 0.85;
+    n.x += n.vx; n.y += n.vy;
+  }
+  if (alpha > 0.03) alpha *= 0.997;
+}
+
+// warm-up so the first paint is already settled, then fit to view
+for (let i = 0; i < 400; i++) tick();
+
+const view = { k: 1, tx: 0, ty: 0 };
+function fit() {
+  const pad = 70;
+  const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+  const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad;
+  const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  view.k = Math.min(w / (maxX - minX), h / (maxY - minY), 2.5);
+  view.tx = w / 2 - ((minX + maxX) / 2) * view.k;
+  view.ty = h / 2 - ((minY + maxY) / 2) * view.k + 40; // clear the legend
+}
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+}
+window.addEventListener("resize", () => { resize(); draw(); });
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const kindStyle = KIND_STYLE(), statusColor = STATUS_COLOR();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  ctx.setTransform(view.k * dpr, 0, 0, view.k * dpr, view.tx * dpr, view.ty * dpr);
+
+  for (const e of edges) {
+    const s = byId.get(e.source), t = byId.get(e.target);
+    ctx.beginPath();
+    ctx.lineWidth = 1.5 / view.k;
+    if (e.kind === "metadata") { ctx.strokeStyle = css("--edge-metadata"); ctx.setLineDash([6 / view.k, 4 / view.k]); }
+    else if (e.kind === "asserts") { ctx.strokeStyle = css("--edge-asserts"); ctx.setLineDash([2 / view.k, 4 / view.k]); }
+    else { ctx.strokeStyle = css("--edge-content"); ctx.setLineDash([]); }
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(t.x, t.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // arrowhead
+    const dx = t.x - s.x, dy = t.y - s.y, d = Math.max(Math.hypot(dx, dy), 1);
+    const ux = dx / d, uy = dy / d;
+    const tr = (kindStyle[t.kind] || kindStyle.entity).r;
+    const ax = t.x - ux * (tr + 4), ay = t.y - uy * (tr + 4);
+    const aw = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - ux * aw * 2 - uy * aw, ay - uy * aw * 2 + ux * aw);
+    ctx.lineTo(ax - ux * aw * 2 + uy * aw, ay - uy * aw * 2 - ux * aw);
+    ctx.closePath();
+    ctx.fillStyle = e.kind === "metadata" ? css("--edge-metadata") : css("--edge-content");
+    ctx.fill();
+    // edge label
+    if (view.k > 0.55 && e.label) {
+      ctx.font = `${10 / view.k}px system-ui, sans-serif`;
+      ctx.fillStyle = css("--text-muted");
+      ctx.textAlign = "center";
+      ctx.fillText(e.label, (s.x + t.x) / 2, (s.y + t.y) / 2 - 4 / view.k);
+    }
+  }
+
+  for (const n of nodes) {
+    const st = kindStyle[n.kind] || kindStyle.entity;
+    const fill = n.kind === "claim" ? (statusColor[n.status] || statusColor.unjudged) : st.color;
+    // 2px surface ring so overlapping marks stay separable
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, st.r + 2 / view.k, 0, Math.PI * 2);
+    ctx.fillStyle = css("--surface-1");
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, st.r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (n === selected || n === hovered) {
+      ctx.lineWidth = 2 / view.k;
+      ctx.strokeStyle = css("--text-primary");
+      ctx.stroke();
+    }
+    if (n.kind === "claim") {
+      ctx.font = `bold ${15}px system-ui, sans-serif`;
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(STATUS_GLYPH[n.status] || "?", n.x, n.y + 1);
+      ctx.textBaseline = "alphabetic";
+    }
+    ctx.font = `${11.5 / Math.max(view.k, 0.75)}px system-ui, sans-serif`;
+    ctx.fillStyle = css("--text-secondary");
+    ctx.textAlign = "center";
+    ctx.fillText(n.label, n.x, n.y + st.r + 14 / Math.max(view.k, 0.75));
+  }
+}
+
+function loop() {
+  if (alpha > 0.03) { tick(); draw(); }
+  requestAnimationFrame(loop);
+}
+
+function screenToWorld(mx, my) {
+  return { x: (mx - view.tx) / view.k, y: (my - view.ty) / view.k };
+}
+function nodeAt(mx, my) {
+  const kindStyle = KIND_STYLE();
+  const w = screenToWorld(mx, my);
+  let best = null, bestD = Infinity;
+  for (const n of nodes) {
+    const r = (kindStyle[n.kind] || kindStyle.entity).r + 5 / view.k;
+    const d = Math.hypot(n.x - w.x, n.y - w.y);
+    if (d < r && d < bestD) { best = n; bestD = d; }
+  }
+  return best;
+}
+
+let pointer = null;
+canvas.addEventListener("pointerdown", ev => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  pointer = { mx, my, moved: false };
+  dragNode = nodeAt(mx, my);
+  canvas.setPointerCapture(ev.pointerId);
+  canvas.style.cursor = dragNode ? "grabbing" : "grab";
+});
+canvas.addEventListener("pointermove", ev => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  if (!pointer) {
+    const h = nodeAt(mx, my);
+    if (h !== hovered) { hovered = h; canvas.style.cursor = h ? "pointer" : "grab"; draw(); }
+    return;
+  }
+  const dx = mx - pointer.mx, dy = my - pointer.my;
+  if (Math.abs(dx) + Math.abs(dy) > 3) pointer.moved = true;
+  if (dragNode) {
+    const w = screenToWorld(mx, my);
+    dragNode.x = w.x; dragNode.y = w.y;
+    alpha = Math.max(alpha, 0.25);
+  } else {
+    view.tx += dx; view.ty += dy;
+  }
+  pointer.mx = mx; pointer.my = my;
+  draw();
+});
+canvas.addEventListener("pointerup", ev => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  if (pointer && !pointer.moved) {
+    selected = nodeAt(mx, my);
+    renderInspector(selected);
+    draw();
+  }
+  pointer = null; dragNode = null;
+  canvas.style.cursor = "grab";
+});
+canvas.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  const factor = Math.exp(-ev.deltaY * 0.0012);
+  const k = Math.min(Math.max(view.k * factor, 0.15), 5);
+  view.tx = mx - ((mx - view.tx) / view.k) * k;
+  view.ty = my - ((my - view.ty) / view.k) * k;
+  view.k = k;
+  draw();
+}, { passive: false });
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function renderInspector(node) {
+  const body = document.getElementById("inspector-body");
+  if (!node) {
+    body.className = "empty";
+    body.textContent = "Click a node to see its triples and which named graph (claim) each came from.";
+    return;
+  }
+  const statusColor = STATUS_COLOR();
+  const kindStyle = KIND_STYLE();
+  const dotColor = node.kind === "claim" ? (statusColor[node.status] || statusColor.unjudged) : kindStyle[node.kind].color;
+  let html = `<h2>${esc(node.label)}</h2><div class="badges">`;
+  html += `<span class="badge"><span class="dot" style="background:${esc(dotColor)}"></span>${esc(node.kind)}</span>`;
+  if (node.kind === "claim") html += `<span class="badge">${esc(STATUS_GLYPH[node.status] || "?")} ${esc(node.status)}</span>`;
+  html += `</div><div class="iri">${esc(node.id)}</div>`;
+  if (node.triples.length) {
+    html += `<h3>Triples (${node.triples.length})</h3>`;
+    for (const t of node.triples) {
+      html += `<div class="triple"><span class="p" title="${esc(t.pFull)}">${esc(t.p)}</span> → ` +
+        `<span class="o" title="${esc(t.oFull)}">${esc(t.o)}</span><br>` +
+        `<span class="g" title="${esc(t.gFull)}">graph: ${esc(t.g)}</span></div>`;
+    }
+  } else {
+    html += `<h3>Triples</h3><div class="empty">No outgoing triples — this node only appears as an object.</div>`;
+  }
+  body.className = "";
+  body.innerHTML = html;
+}
+
+resize();
+fit();
+draw();
+loop();
+</script>
+</body>
+</html>
