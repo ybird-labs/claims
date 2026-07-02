@@ -28,6 +28,13 @@ fn check(label: &str, condition: bool) {
 }
 
 fn main() {
+    // `cargo run -- carbon`: the carbon-project stress-test demo (real
+    // registration-review data). No argument: the original six proofs.
+    if std::env::args().nth(1).as_deref() == Some("carbon") {
+        claims_spike::carbon::run_demo();
+        return;
+    }
+
     println!("Claims Engine spike — design/CLAIMS_ENGINE_DOMAIN_MODEL.md (2026-07-02)");
     println!("Scenario: a verifier verified that tons of CO2 were stored at a site.");
 

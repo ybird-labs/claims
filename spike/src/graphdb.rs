@@ -68,6 +68,23 @@ impl SparqlProjection {
         Ok(iris)
     }
 
+    /// Run a SPARQL SELECT and collect `(var_a, var_b)` binding pairs. IRIs
+    /// collect as their IRI string, literals as their lexical value.
+    pub fn select_pairs(
+        &self,
+        query: &str,
+        var_a: &str,
+        var_b: &str,
+    ) -> Result<BTreeSet<(String, String)>, GraphDbError> {
+        let mut pairs = BTreeSet::new();
+        for solution in self.solutions(query)? {
+            if let (Some(a), Some(b)) = (solution.get(var_a), solution.get(var_b)) {
+                pairs.insert((term_string(a), term_string(b)));
+            }
+        }
+        Ok(pairs)
+    }
+
     /// Run a SPARQL SELECT expected to bind `var` to one integer literal.
     pub fn select_integer(&self, query: &str, var: &str) -> Result<i64, GraphDbError> {
         let solutions = self.solutions(query)?;
@@ -100,6 +117,14 @@ impl SparqlProjection {
         solutions
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| GraphDbError::Query(e.to_string()))
+    }
+}
+
+fn term_string(term: &Term) -> String {
+    match term {
+        Term::NamedNode(node) => node.as_str().to_string(),
+        Term::Literal(literal) => literal.value().to_string(),
+        other => other.to_string(),
     }
 }
 

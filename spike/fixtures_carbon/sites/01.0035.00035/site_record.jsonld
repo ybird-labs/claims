@@ -1,0 +1,68 @@
+{
+  "@context": {
+    "PlotRecord": "se:PlotRecord",
+    "SamplingSummary": "se:SamplingSummary",
+    "SiteRecord": "se:SiteRecord",
+    "acreage_hectares": {
+      "@id": "se:acreage_hectares",
+      "@type": "xsd:double"
+    },
+    "active_acreage": {
+      "@id": "se:active_acreage",
+      "@type": "xsd:double"
+    },
+    "country_iso": "se:country_iso",
+    "earliest_sampling_date": {
+      "@id": "se:earliest_sampling_date",
+      "@type": "xsd:date"
+    },
+    "farm_key": "se:farm_key",
+    "holder": "se:holder",
+    "id": "@id",
+    "land_use": "se:land_use",
+    "part_of_site": {
+      "@id": "se:part_of_site",
+      "@type": "@id"
+    },
+    "plot": {
+      "@id": "se:plot",
+      "@type": "@id"
+    },
+    "plot_count": {
+      "@id": "se:plot_count",
+      "@type": "xsd:integer"
+    },
+    "plot_key": "se:plot_key",
+    "plots": {
+      "@id": "se:plots",
+      "@type": "@id"
+    },
+    "record_count": {
+      "@id": "se:record_count",
+      "@type": "xsd:integer"
+    },
+    "registration_id": "se:registration_id",
+    "se": "https://carboneg.example/schema/source-evidence/1.0.0/",
+    "site": {
+      "@id": "se:site",
+      "@type": "@id"
+    },
+    "type": "@type",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "active_acreage": 44.45,
+  "country_iso": "CZ",
+  "farm_key": "01.0035.00035",
+  "holder": "Landholder CZ-0035",
+  "land_use": "Pastures",
+  "plot_count": 5,
+  "plots": [
+    "https://carboneg.example/plot/01.0035.00035.000001",
+    "https://carboneg.example/plot/01.0035.00035.000002",
+    "https://carboneg.example/plot/01.0035.00035.000003",
+    "https://carboneg.example/plot/01.0035.00035.000004",
+    "https://carboneg.example/plot/01.0035.00035.000005"
+  ],
+  "site": "https://carboneg.example/site/01.0035.00035",
+  "type": "SiteRecord"
+}

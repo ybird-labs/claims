@@ -1,0 +1,33 @@
+{
+  "generator": "tools/gen_carbon_fixtures.py",
+  "pseudonym_rule": "Landholder <country_iso>-<farmer_id>; names never copied",
+  "requirements": [
+    "C06-REGISTRATION-SL-003",
+    "C06-REGISTRATION-SL-006",
+    "C06-REGISTRATION-SL-007",
+    "C06-REGISTRATION-SL-009"
+  ],
+  "retrieval_coordinates_note": "Airtable record IDs below are retrieval coordinates. They are recorded here (audit-side documentation) and deliberately kept out of claim content, which carries entity identifiers only.",
+  "sites": [
+    {
+      "airtable_record_ids": {
+        "farm": "rec3qFWIUcrLSfUen",
+        "farmer": "rec0onrvly89AWiIW"
+      },
+      "farm_key": "01.0035.00035"
+    },
+    {
+      "airtable_record_ids": {
+        "farm": "rechARlrCnxZEaVG1",
+        "farmer": "rec6MGify7UbpoCHN"
+      },
+      "farm_key": "02.4368.00441"
+    }
+  ],
+  "source_files": [
+    "progress/site_index.json",
+    "progress/sites/01.0035.00035.json",
+    "progress/sites/02.4368.00441.json"
+  ],
+  "source_repository": "ybird-labs/carbon-project"
+}

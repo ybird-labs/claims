@@ -1,0 +1,45 @@
+{
+  "$id": "https://carboneg.example/schema/derivation/1.0.0/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A value derived from other claims by a named rule, because the source systems expose no authoritative field. derived_from cites the input ClaimIRIs; the derivation is structured content, not prose notes. Hand-authored as-if generated from LinkML.",
+  "properties": {
+    "derived_from": {
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "property": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "rule": {
+      "format": "uri",
+      "type": "string"
+    },
+    "subject": {
+      "format": "uri",
+      "type": "string"
+    },
+    "type": {
+      "const": "Derivation"
+    },
+    "value": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "subject",
+    "property",
+    "value",
+    "rule",
+    "derived_from"
+  ],
+  "title": "Derivation",
+  "type": "object"
+}

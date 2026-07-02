@@ -1,0 +1,63 @@
+{
+  "$id": "https://carboneg.example/schema/requirement-judgment/1.0.0/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A user-space judgment that a site satisfies (or not) a numbered registration requirement under a specific credit-class version. Tri-state outcome and multi-claim evidence are user-space vocabulary: the engine's own validation-result schema stays binary and single-target. The normative rule version (credit_class_version) is content, not an engine schema version. Hand-authored as-if generated from LinkML.",
+  "properties": {
+    "credit_class_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "judge": {
+      "format": "uri",
+      "type": "string"
+    },
+    "judged_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "satisfied",
+        "not_satisfied",
+        "unclear"
+      ]
+    },
+    "requirement": {
+      "format": "uri",
+      "type": "string"
+    },
+    "requirement_id": {
+      "pattern": "^C06-[A-Z]+-[SM]L-[0-9]{3}$",
+      "type": "string"
+    },
+    "site": {
+      "format": "uri",
+      "type": "string"
+    },
+    "type": {
+      "const": "RequirementJudgment"
+    }
+  },
+  "required": [
+    "type",
+    "requirement",
+    "requirement_id",
+    "credit_class_version",
+    "site",
+    "outcome",
+    "evidence",
+    "judge",
+    "judged_at"
+  ],
+  "title": "RequirementJudgment",
+  "type": "object"
+}
