@@ -478,8 +478,105 @@ pub fn projection(world: &CarbonWorld) -> LightDataset {
     l0_projection(&world.store).expect("carbon projection builds")
 }
 
-const SL_003: &str = "C06-REGISTRATION-SL-003";
-const HYPOTHETICAL_NEXT_VERSION: &str = "1.6.0";
+pub const SL_003: &str = "C06-REGISTRATION-SL-003";
+pub const HYPOTHETICAL_NEXT_VERSION: &str = "1.6.0";
+
+/// Sample queries preloaded into the SPARQL workbench. The first is the C4
+/// chain query, whose result the Playwright verification script compares
+/// against `expected_c4.json`.
+pub fn workbench_samples(world: &CarbonWorld) -> Vec<(String, String)> {
+    let version = world.sites[0].credit_class_version.clone();
+    vec![
+        (
+            format!("C4 trust chain: satisfied {SL_003} judgments -> evidence -> registration ids"),
+            judgment_evidence_query(SL_003, "satisfied", &version),
+        ),
+        (
+            format!("C5 filter: {SL_003} judgments under rule version {version}"),
+            judgments_by_version_query(SL_003, &version),
+        ),
+        (
+            format!(
+                "C5 filter: {SL_003} judgments under hypothetical version {HYPOTHETICAL_NEXT_VERSION}"
+            ),
+            judgments_by_version_query(SL_003, HYPOTHETICAL_NEXT_VERSION),
+        ),
+        (
+            "All requirement judgments: site, requirement, outcome, rule version".to_string(),
+            format!(
+                r#"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rj: <{JUDGMENT_SCHEMA_IRI}/>
+SELECT ?site ?requirement_id ?outcome ?version WHERE {{
+  GRAPH ?claim {{
+    ?judgment rdf:type rj:RequirementJudgment ;
+              rj:site ?site ;
+              rj:requirement_id ?requirement_id ;
+              rj:outcome ?outcome ;
+              rj:credit_class_version ?version .
+  }}
+}}
+ORDER BY ?site ?requirement_id ?version"#
+            ),
+        ),
+        (
+            "Derivations: derived start dates and their input claims".to_string(),
+            format!(
+                r#"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dv: <{DERIVATION_SCHEMA_IRI}/>
+SELECT ?derivation_claim ?subject ?value ?input WHERE {{
+  GRAPH ?derivation_claim {{
+    ?derivation rdf:type dv:Derivation ;
+                dv:subject ?subject ;
+                dv:value ?value ;
+                dv:derived_from ?input .
+  }}
+}}
+ORDER BY ?subject ?input"#
+            ),
+        ),
+    ]
+}
+
+/// Write the carbon demo's artifacts under `out_dir`: the projection as
+/// N-Quads, the interactive graph, the live SPARQL workbench, and the C4
+/// expectation the workbench verification script checks against. Returns
+/// the written paths.
+pub fn write_carbon_artifacts(
+    world: &CarbonWorld,
+    out_dir: &Path,
+) -> std::io::Result<[PathBuf; 4]> {
+    use crate::export;
+
+    std::fs::create_dir_all(out_dir)?;
+
+    let nquads = export::projection_nquads(&world.store)
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
+    let nquads_path = out_dir.join("projection.nq");
+    std::fs::write(&nquads_path, &nquads)?;
+
+    let graph_path = out_dir.join("graph.html");
+    let graph_html = export::graph_html(&world.store)
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
+    std::fs::write(&graph_path, graph_html)?;
+
+    let sparql_path = out_dir.join("sparql.html");
+    std::fs::write(
+        &sparql_path,
+        export::sparql_workbench_html(&nquads, &workbench_samples(world)),
+    )?;
+
+    let expected: Vec<[String; 2]> = expected_registration_pairs(world, SL_003, "satisfied")
+        .into_iter()
+        .map(|(evidence, registration)| [evidence, registration])
+        .collect();
+    let expected_path = out_dir.join("expected_c4.json");
+    std::fs::write(
+        &expected_path,
+        serde_json::to_string_pretty(&expected).expect("pairs encode"),
+    )?;
+
+    Ok([nquads_path, graph_path, sparql_path, expected_path])
+}
 
 fn proof(label: &str, title: &str) {
     println!("\n=== PROOF {label}: {title} ===");
@@ -739,6 +836,10 @@ pub fn run_demo() {
         forward.fingerprint() == reverse.fingerprint() && forward.iri() == reverse.iri(),
     );
 
+    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("out").join("carbon");
+    let [nquads_path, graph_path, sparql_path, expected_path] =
+        write_carbon_artifacts(&world, &out_dir).expect("artifacts write");
+
     println!("\nPASS C1: real entities admit through the unchanged L0 floor");
     println!("PASS C2: derivation claims walk back to their input ClaimIRIs");
     println!("PASS C3: tri-state multi-evidence judgments are ordinary claims");
@@ -746,4 +847,16 @@ pub fn run_demo() {
     println!("PASS C5: rule versions are content — a bump is a new claim");
     println!("PASS C6: snapshot fingerprints are order-independent");
     println!("\nALL CARBON PROOFS PASSED");
+
+    println!("\nArtifacts:");
+    println!("  projection (N-Quads):   {}", nquads_path.display());
+    println!(
+        "  interactive graph:      {}  (open in any browser)",
+        graph_path.display()
+    );
+    println!(
+        "  live SPARQL workbench:  {}  (open in any browser)",
+        sparql_path.display()
+    );
+    println!("  C4 expected result:     {}", expected_path.display());
 }

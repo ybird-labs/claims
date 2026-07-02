@@ -21,6 +21,10 @@
     --status-good: #0ca30c;
     --status-critical: #d03b3b;
     --status-unjudged: #9a9992;
+    /* self-asserted outcomes (e.g. requirement judgments) */
+    --outcome-satisfied: #0ca30c;
+    --outcome-not_satisfied: #d03b3b;
+    --outcome-unclear: #d69510;
     --panel-border: #e3e2dd;
   }
   @media (prefers-color-scheme: dark) {
@@ -101,6 +105,7 @@
       <div class="row"><span class="line"></span>content triple</div>
       <div class="row"><span class="line dashed"></span>metadata (declaresSchema)</div>
       <div class="row"><span class="line dotted"></span>claim asserts its content</div>
+      <div id="legend-dynamic"></div>
       <div class="hint">drag nodes · drag background to pan · scroll to zoom · click a node to inspect</div>
     </div>
   </div>
@@ -126,6 +131,20 @@ const STATUS_COLOR = () => ({
   unjudged:   css("--status-unjudged"),
 });
 const STATUS_GLYPH = { conforms: "✓", violations: "✕", unjudged: "?" };
+
+// Self-asserted outcomes and schema kinds are open vocabularies (user-space
+// claim-type schemas), so colors are derived from the value itself: a CSS
+// var when one is defined (--outcome-<value>), else a deterministic hue.
+const hueColor = s => {
+  let h = 0;
+  for (const c of s) h = (h * 31 + c.codePointAt(0)) % 360;
+  return `hsl(${h} 60% 44%)`;
+};
+const outcomeColor = o => css(`--outcome-${o}`) || hueColor(`outcome:${o}`);
+const schemaRingColor = s => hueColor(`schema:${s}`);
+const OUTCOME_GLYPH = { satisfied: "✓", not_satisfied: "✕", unclear: "~" };
+const hasOutcome = n => n.outcome && n.outcome !== "none";
+const hasSchema = n => n.schema && n.schema !== "none";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -242,12 +261,22 @@ function draw() {
 
   for (const n of nodes) {
     const st = kindStyle[n.kind] || kindStyle.entity;
-    const fill = n.kind === "claim" ? (statusColor[n.status] || statusColor.unjudged) : st.color;
+    const fill = n.kind === "claim"
+      ? (hasOutcome(n) ? outcomeColor(n.outcome) : (statusColor[n.status] || statusColor.unjudged))
+      : st.color;
     // 2px surface ring so overlapping marks stay separable
     ctx.beginPath();
     ctx.arc(n.x, n.y, st.r + 2 / view.k, 0, Math.PI * 2);
     ctx.fillStyle = css("--surface-1");
     ctx.fill();
+    // schema ring: claim-type at a glance, colored from the schema label
+    if (hasSchema(n)) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, st.r + 3.5 / view.k, 0, Math.PI * 2);
+      ctx.lineWidth = 2.5 / view.k;
+      ctx.strokeStyle = schemaRingColor(n.schema);
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.arc(n.x, n.y, st.r, 0, Math.PI * 2);
     ctx.fillStyle = fill;
@@ -262,7 +291,10 @@ function draw() {
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(STATUS_GLYPH[n.status] || "?", n.x, n.y + 1);
+      const glyph = hasOutcome(n)
+        ? (OUTCOME_GLYPH[n.outcome] || "•")
+        : (STATUS_GLYPH[n.status] || "?");
+      ctx.fillText(glyph, n.x, n.y + 1);
       ctx.textBaseline = "alphabetic";
     }
     ctx.font = `${11.5 / Math.max(view.k, 0.75)}px system-ui, sans-serif`;
@@ -354,9 +386,13 @@ function renderInspector(node) {
   }
   const statusColor = STATUS_COLOR();
   const kindStyle = KIND_STYLE();
-  const dotColor = node.kind === "claim" ? (statusColor[node.status] || statusColor.unjudged) : kindStyle[node.kind].color;
+  const dotColor = node.kind === "claim"
+    ? (hasOutcome(node) ? outcomeColor(node.outcome) : (statusColor[node.status] || statusColor.unjudged))
+    : kindStyle[node.kind].color;
   let html = `<h2>${esc(node.label)}</h2><div class="badges">`;
   html += `<span class="badge"><span class="dot" style="background:${esc(dotColor)}"></span>${esc(node.kind)}</span>`;
+  if (hasSchema(node)) html += `<span class="badge"><span class="dot" style="background:${esc(schemaRingColor(node.schema))}"></span>${esc(node.schema)}</span>`;
+  if (node.kind === "claim" && hasOutcome(node)) html += `<span class="badge">${esc(OUTCOME_GLYPH[node.outcome] || "•")} ${esc(node.outcome)}</span>`;
   if (node.kind === "claim") html += `<span class="badge">${esc(STATUS_GLYPH[node.status] || "?")} ${esc(node.status)}</span>`;
   html += `</div><div class="iri">${esc(node.id)}</div>`;
   if (node.triples.length) {
@@ -372,6 +408,22 @@ function renderInspector(node) {
   body.className = "";
   body.innerHTML = html;
 }
+
+// Legend rows derived from whatever the data actually contains: one ring
+// row per claim-type schema, one fill row per self-asserted outcome.
+(function buildDynamicLegend() {
+  const box = document.getElementById("legend-dynamic");
+  const schemas = [...new Set(nodes.filter(hasSchema).map(n => n.schema))].sort();
+  const outcomes = [...new Set(nodes.filter(n => n.kind === "claim" && hasOutcome(n)).map(n => n.outcome))].sort();
+  let html = "";
+  for (const s of schemas) {
+    html += `<div class="row"><span class="chip" style="background:transparent;border:2.5px solid ${esc(schemaRingColor(s))}"></span>ring: ${esc(s)} claim</div>`;
+  }
+  for (const o of outcomes) {
+    html += `<div class="row"><span class="chip" style="background:${esc(outcomeColor(o))}"></span>judgment: ${esc(o)} ${esc(OUTCOME_GLYPH[o] || "•")}</div>`;
+  }
+  box.innerHTML = html;
+})();
 
 resize();
 fit();

@@ -113,6 +113,37 @@ The proofs:
 6. **C6 — snapshots.** The snapshot over all carbon claims has an
    order-independent fingerprint.
 
+### Carbon artifacts
+
+`cargo run -- carbon` writes to `spike/out/carbon/` (gitignored) and prints
+the paths:
+
+- **`graph.html`** — the interactive viewer over the carbon projection.
+  On top of the base viewer's features, claims wear a **schema ring**
+  (one deterministic color per claim-type schema: source-evidence,
+  derivation, requirement-judgment, validation-result) and requirement
+  judgments are **filled by their tri-state outcome** (satisfied ✓ /
+  not_satisfied ✕ / unclear ~), both derived from projected claim content
+  at render time — the legend grows rows for whatever the data contains.
+- **`sparql.html`** — a **live SPARQL workbench**: the official Oxigraph
+  WebAssembly build (same engine version as the spike's Rust crate,
+  vendored under `assets/vendor/oxigraph-0.5.9/` with provenance and
+  license recorded there) is embedded into the page together with the
+  projection N-Quads. Real SPARQL 1.1 runs entirely in the browser — no
+  server, no network requests. Preloaded samples include the C4 trust-chain
+  query, the C5 version filters, and judgment/derivation overviews.
+- **`projection.nq`** and **`expected_c4.json`** — the projection for
+  external tools, and the programmatically computed C4 result the
+  verification below checks against.
+
+Verify the workbench end-to-end in a real headless browser (regenerates the
+artifacts, runs the preloaded C4 query through the embedded engine, and
+compares the rendered rows to `expected_c4.json`):
+
+```sh
+node tools/verify_sparql_workbench.cjs
+```
+
 ## Visualize
 
 `cargo run` writes two artifacts to `spike/out/` (gitignored) and prints

@@ -21,6 +21,11 @@ use crate::projection::{l0_projection, ProjectionError, VALIDATION_RESULT_NS};
 const HTML_TEMPLATE: &str = include_str!("../assets/graph_template.html");
 const METADATA_GRAPH_LABEL: &str = "engine metadata (default graph)";
 
+const SPARQL_TEMPLATE: &str = include_str!("../assets/sparql_template.html");
+/// Vendored oxigraph JS/WASM build — see assets/vendor/oxigraph-0.5.9/README.md.
+const OXIGRAPH_WEB_JS: &str = include_str!("../assets/vendor/oxigraph-0.5.9/web.js");
+const OXIGRAPH_WASM: &[u8] = include_bytes!("../assets/vendor/oxigraph-0.5.9/web_bg.wasm");
+
 #[derive(Debug, thiserror::Error)]
 pub enum ExportError {
     #[error(transparent)]
@@ -83,10 +88,33 @@ fn render_object(term: &SimpleTerm<'_>) -> (String, String) {
     (rendered, full)
 }
 
+/// Display label for a claim-type schema version IRI: the name segment,
+/// without the version tail (e.g. `…/source-evidence/1.0.0` →
+/// `source-evidence`). Purely lexical — works for any schema namespace.
+fn schema_label(iri: &str) -> String {
+    let mut segments = iri.trim_end_matches('/').rsplit('/');
+    let last = segments.next().unwrap_or(iri);
+    if last.starts_with(|c: char| c.is_ascii_digit()) {
+        if let Some(name) = segments.next() {
+            return name.to_string();
+        }
+    }
+    last.to_string()
+}
+
 #[derive(Debug, Default)]
 struct NodeBuild {
     kind: &'static str,
     status: Option<String>,
+    /// The claim's *self-asserted* outcome: a literal object of a
+    /// `…/outcome` predicate inside the claim's own named graph (e.g. a
+    /// carbon requirement judgment's satisfied / not_satisfied / unclear).
+    /// Distinct from `status`, which is what *validators* said about it.
+    outcome: Option<String>,
+    /// Label of the claim's declared schema — lets the viewer distinguish
+    /// claim types (source-evidence vs derivation vs requirement-judgment
+    /// vs validation-result) without hardcoding any namespace.
+    schema: Option<String>,
     type_label: Option<String>,
     triples: Vec<Value>,
 }
@@ -134,6 +162,7 @@ pub fn graph_export(store: &L0Store) -> Result<Value, ExportError> {
             .contains(VALIDATION_RESULT_SCHEMA_IRI);
         let build = builds.entry(claim.iri().to_string()).or_default();
         build.kind = if is_verdict { "verdict" } else { "claim" };
+        build.schema = claim.declared_schemas().iter().next().map(|s| schema_label(s));
         if !is_verdict {
             build.status = Some(
                 statuses
@@ -157,6 +186,7 @@ pub fn graph_export(store: &L0Store) -> Result<Value, ExportError> {
     // metadata triples from the default graph.
     let mut objects_in_graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut subjects_in_graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut self_outcomes: BTreeMap<String, String> = BTreeMap::new();
     for quad in projection.quads() {
         let quad = quad.map_err(|e| ExportError::Serialize(e.to_string()))?;
         let ([s, p, o], g) = quad.spog();
@@ -183,6 +213,13 @@ pub fn graph_export(store: &L0Store) -> Result<Value, ExportError> {
         };
 
         if in_content {
+            // A claim's own `…/outcome` literal (works for any claim-type
+            // schema that asserts one — judgment or validation claims alike).
+            if predicate_iri.ends_with("/outcome") {
+                if let Some(lexical) = o.lexical_form() {
+                    self_outcomes.insert(graph_full.clone(), lexical.to_string());
+                }
+            }
             let graph_iri = graph_full.clone();
             let build = builds.entry(subject_iri.clone()).or_default();
             if build.kind.is_empty() {
@@ -257,6 +294,12 @@ pub fn graph_export(store: &L0Store) -> Result<Value, ExportError> {
         }
     }
 
+    for (graph_iri, outcome) in &self_outcomes {
+        if let Some(build) = builds.get_mut(graph_iri) {
+            build.outcome = Some(outcome.clone());
+        }
+    }
+
     let nodes: Vec<Value> = builds
         .into_iter()
         .map(|(id, build)| {
@@ -275,6 +318,8 @@ pub fn graph_export(store: &L0Store) -> Result<Value, ExportError> {
                 "label": label,
                 "kind": kind,
                 "status": build.status.unwrap_or_else(|| "none".to_string()),
+                "outcome": build.outcome.unwrap_or_else(|| "none".to_string()),
+                "schema": build.schema.unwrap_or_else(|| "none".to_string()),
                 "triples": build.triples,
             })
         })
@@ -297,6 +342,31 @@ pub fn projection_nquads(store: &L0Store) -> Result<String, ExportError> {
         .serialize_dataset(&projection)
         .map_err(|e| ExportError::Serialize(e.to_string()))?;
     Ok(serializer.as_str().to_string())
+}
+
+/// A self-contained live SPARQL workbench over the given N-Quads: the
+/// vendored Oxigraph WASM engine, the data, and sample queries are all
+/// embedded in one HTML document — no server, no network requests.
+pub fn sparql_workbench_html(nquads: &str, samples: &[(String, String)]) -> String {
+    use base64::Engine as _;
+
+    let samples_json: Value = samples
+        .iter()
+        .map(|(name, query)| json!({ "name": name, "query": query }))
+        .collect();
+    let wasm_base64 = base64::engine::general_purpose::STANDARD.encode(OXIGRAPH_WASM);
+
+    SPARQL_TEMPLATE
+        .replace("__OXIGRAPH_WEB_JS__", OXIGRAPH_WEB_JS)
+        .replace(
+            "__WASM_BASE64_JSON__",
+            &serde_json::to_string(&wasm_base64).expect("string encodes"),
+        )
+        .replace(
+            "__NQUADS_JSON__",
+            &serde_json::to_string(nquads).expect("string encodes"),
+        )
+        .replace("__SAMPLES_JSON__", &samples_json.to_string())
 }
 
 /// Write `projection.nq` and `graph.html` under `out_dir`, returning their
