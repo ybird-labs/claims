@@ -1,7 +1,8 @@
-//! Demo binary: narrates and asserts the five proofs of the 2026-07-02
+//! Demo binary: narrates and asserts the six proofs of the 2026-07-02
 //! domain model, using the carbon-verification example. Exits non-zero if
 //! any assertion fails.
 
+use claims_spike::graphdb::{trust_composition_query, trusted_total_query, SparqlProjection};
 use claims_spike::l0::L0Store;
 use claims_spike::l1::{Validator, VALIDATION_RESULT_SCHEMA_IRI};
 use claims_spike::projection::{conforming_claims, l0_projection};
@@ -9,6 +10,8 @@ use claims_spike::registry::{SchemaRegistry, SchemaVersion};
 use claims_spike::snapshot::Snapshot;
 
 const CARBON_SCHEMA_IRI: &str = "https://claims.example/schema/carbon-storage-verification/1.0.0";
+const TONS_CO2_PROPERTY_IRI: &str =
+    "https://claims.example/schema/carbon-storage-verification/1.0.0/tons_co2";
 const VALIDATOR_IRI: &str = "https://validators.example/service/l1";
 
 const MATERIAL_GOOD_A: &str = include_str!("../fixtures/material_good_a.jsonld");
@@ -218,6 +221,30 @@ fn main() {
     check(
         "snapshot membership is exactly the trusted claim set",
         snapshot_forward.membership().iter().eq(trusted.iter()),
+    );
+
+    proof(6, "SPARQL over the projection in an in-memory graph store");
+    let graphdb = SparqlProjection::load(&store).expect("projection loads into oxigraph");
+    let sparql_trusted = graphdb
+        .select_iris(
+            &trust_composition_query(CARBON_SCHEMA_IRI, VALIDATOR_IRI),
+            "claim",
+        )
+        .expect("SPARQL trust composition runs");
+    check(
+        "SPARQL trust composition equals the programmatic query result",
+        sparql_trusted == trusted,
+    );
+    let total_tons = graphdb
+        .select_integer(
+            &trusted_total_query(CARBON_SCHEMA_IRI, VALIDATOR_IRI, TONS_CO2_PROPERTY_IRI),
+            "total",
+        )
+        .expect("SPARQL aggregate runs");
+    println!("  total verified tons of CO2 across trusted claims: {total_tons}");
+    check(
+        "one SPARQL query composes trust with claim content (5 verified tons)",
+        total_tons == 5,
     );
 
     println!("\nALL PROOFS PASSED");

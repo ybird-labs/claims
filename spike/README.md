@@ -38,6 +38,30 @@ cargo test    # unit + end-to-end tests
    from a chosen validator — the good claim survives, the bad one doesn't.
 5. **Deterministic snapshots.** A snapshot over the trusted claim set has an
    order-independent fingerprint and a derived SnapshotIRI.
+6. **The projection loads into a real graph database.** The L0 projection is
+   loaded into an in-memory Oxigraph store (built without RocksDB — nothing
+   touches disk) and queried with standard SPARQL 1.1. The trust-composition
+   query re-expressed as SPARQL returns exactly the same result set as the
+   programmatic query, and a single SPARQL query composes trust with claim
+   content across projection layers — the total verified tons of CO₂ over
+   exactly the trusted claims:
+
+   ```sparql
+   SELECT (SUM(?value) AS ?total) WHERE {
+     GRAPH ?verdict {
+       ?judgment rdf:type vr:ValidationResult ;
+                 vr:validator <...> ;
+                 vr:schema_version <...> ;
+                 vr:outcome "conforms" ;
+                 vr:target_claim ?claim .
+     }
+     ?claim ce:declaresSchema <...> .          # witnessed metadata layer
+     GRAPH ?claim { ?s csv:tons_co2 ?value }   # asserted content layer
+   }
+   ```
+
+   The store is rebuilt from the claim record on every construction; claims
+   remain the only source of truth (see `src/graphdb.rs`).
 
 ## Provisional choices for design doc §20 (open items)
 
@@ -50,6 +74,7 @@ cargo test    # unit + end-to-end tests
 | 5. Schema declaration placement | Envelope-level, part of the fingerprint preimage (avoids the content-addressing self-reference circularity) |
 | 6. Validation-claim shape | `fixtures/validation-result.schema.json` — validator, target_claim, schema_version, outcome, violations, validated_at |
 | 7. SnapshotIRI generation | Derived from the membership fingerprint, same scheme as ClaimIRIs |
+| 10. Projection query representation | In-memory Oxigraph store (no RocksDB) loaded from the L0 projection; queried with SPARQL 1.1; rebuilt per construction, never persisted |
 
 ## Deliberate simplifications
 

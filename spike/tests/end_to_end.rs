@@ -1,5 +1,6 @@
-//! End-to-end integration test mirroring the demo binary's five proofs.
+//! End-to-end integration test mirroring the demo binary's proofs.
 
+use claims_spike::graphdb::{trust_composition_query, trusted_total_query, SparqlProjection};
 use claims_spike::l0::L0Store;
 use claims_spike::l1::{Validator, VALIDATION_RESULT_SCHEMA_IRI};
 use claims_spike::projection::{conforming_claims, l0_projection};
@@ -182,6 +183,82 @@ fn validation_judgments_become_claims_and_compose_into_trust() {
     let forward = Snapshot::create(trusted.iter().cloned()).unwrap();
     let reverse = Snapshot::create(trusted.iter().rev().cloned()).unwrap();
     assert_eq!(forward, reverse);
+}
+
+#[test]
+fn sparql_projection_answers_trust_and_content_queries() {
+    let registry = registry();
+    let mut store = L0Store::new();
+    let validator = Validator::new(VALIDATOR_IRI);
+
+    let good = store
+        .admit(
+            MATERIAL_GOOD_A.as_bytes(),
+            "https://people.example/bob",
+            &[CARBON_SCHEMA_IRI],
+            "2026-07-01T08:00:00Z",
+        )
+        .unwrap();
+    let bad = store
+        .admit(
+            MATERIAL_BAD.as_bytes(),
+            "https://people.example/mallory",
+            &[CARBON_SCHEMA_IRI],
+            "2026-07-01T10:15:00Z",
+        )
+        .unwrap();
+    validator
+        .validate(
+            &mut store,
+            &registry,
+            &good.claim_iri,
+            CARBON_SCHEMA_IRI,
+            "2026-07-01T11:00:00Z",
+        )
+        .unwrap();
+    validator
+        .validate(
+            &mut store,
+            &registry,
+            &bad.claim_iri,
+            CARBON_SCHEMA_IRI,
+            "2026-07-01T11:05:00Z",
+        )
+        .unwrap();
+
+    let graphdb = SparqlProjection::load(&store).unwrap();
+
+    // SPARQL trust composition agrees with the programmatic query.
+    let projection = l0_projection(&store).unwrap();
+    let programmatic = conforming_claims(&projection, CARBON_SCHEMA_IRI, VALIDATOR_IRI);
+    let sparql_trusted = graphdb
+        .select_iris(
+            &trust_composition_query(CARBON_SCHEMA_IRI, VALIDATOR_IRI),
+            "claim",
+        )
+        .unwrap();
+    assert_eq!(sparql_trusted, programmatic);
+    assert!(sparql_trusted.contains(&good.claim_iri));
+    assert!(!sparql_trusted.contains(&bad.claim_iri));
+
+    // An untrusted validator yields an empty SPARQL result.
+    let untrusted = graphdb
+        .select_iris(
+            &trust_composition_query(CARBON_SCHEMA_IRI, "https://validators.example/nobody"),
+            "claim",
+        )
+        .unwrap();
+    assert!(untrusted.is_empty());
+
+    // One query composes trust with claim content across layers.
+    let tons_property = format!("{CARBON_SCHEMA_IRI}/tons_co2");
+    let total = graphdb
+        .select_integer(
+            &trusted_total_query(CARBON_SCHEMA_IRI, VALIDATOR_IRI, &tons_property),
+            "total",
+        )
+        .unwrap();
+    assert_eq!(total, 5);
 }
 
 #[test]

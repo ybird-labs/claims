@@ -15,3 +15,4 @@ hex = "0.4"
 thiserror = "2"
 sophia = { version = "0.9", features = ["jsonld"] }
 jsonschema = "0.33"
+oxigraph = { version = "0.5.9", default-features = false }
