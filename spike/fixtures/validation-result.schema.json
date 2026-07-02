@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claims.example/schema/validation-result/1.0.0/schema.json",
+  "title": "ValidationResult",
+  "description": "Engine-published claim-type schema for L1 validation outcomes. Validation claims are ordinary claims.",
+  "type": "object",
+  "required": ["type", "validator", "target_claim", "schema_version", "outcome", "violations", "validated_at"],
+  "properties": {
+    "type": { "const": "ValidationResult" },
+    "validator": { "type": "string", "format": "uri" },
+    "target_claim": { "type": "string", "format": "uri" },
+    "schema_version": { "type": "string", "format": "uri" },
+    "outcome": { "enum": ["conforms", "violations"] },
+    "violations": { "type": "integer", "minimum": 0 },
+    "validated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

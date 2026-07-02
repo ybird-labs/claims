@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claims.example/schema/carbon-storage-verification/1.0.0/schema.json",
+  "title": "CarbonStorageVerification",
+  "description": "A verifier verified that an amount of carbon was stored at a site. Hand-authored as-if generated from a LinkML claim-type schema.",
+  "type": "object",
+  "required": ["type", "verifier", "tons_co2", "storage_method", "site", "verified_at"],
+  "properties": {
+    "type": { "const": "CarbonStorageVerification" },
+    "verifier": {
+      "type": "object",
+      "required": ["id", "type", "name", "accreditation_id"],
+      "properties": {
+        "id": { "type": "string", "format": "uri" },
+        "type": { "const": "Verifier" },
+        "name": { "type": "string", "minLength": 1 },
+        "accreditation_id": { "type": "string", "pattern": "^ACR-[0-9]{4}-[0-9]{4}$" }
+      },
+      "additionalProperties": false
+    },
+    "tons_co2": { "type": "integer", "minimum": 1 },
+    "storage_method": { "type": "string", "minLength": 1 },
+    "site": { "type": "string", "format": "uri" },
+    "verified_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

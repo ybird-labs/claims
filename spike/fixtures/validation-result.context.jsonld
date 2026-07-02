@@ -1,0 +1,14 @@
+{
+  "@context": {
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "vr": "https://claims.example/schema/validation-result/1.0.0/",
+    "ValidationResult": "vr:ValidationResult",
+    "type": "@type",
+    "validator": { "@id": "vr:validator", "@type": "@id" },
+    "target_claim": { "@id": "vr:target_claim", "@type": "@id" },
+    "schema_version": { "@id": "vr:schema_version", "@type": "@id" },
+    "outcome": "vr:outcome",
+    "violations": { "@id": "vr:violations", "@type": "xsd:integer" },
+    "validated_at": { "@id": "vr:validated_at", "@type": "xsd:dateTime" }
+  }
+}
