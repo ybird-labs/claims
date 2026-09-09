@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 use super::{AssertionProvenance, ClaimContent, ClaimId, ClaimIri};
 
 /// Provenance-bearing assertion of canonical claim content.

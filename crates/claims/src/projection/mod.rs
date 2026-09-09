@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //! Derived projections.
 //!
 //! L0 and other read/query structures belong here. Projections are rebuildable

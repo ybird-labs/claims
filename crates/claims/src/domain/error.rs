@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]

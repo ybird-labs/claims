@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 /// Derivable cryptographic digest of an immutable [`ClaimValue`](crate::domain::ClaimValue).
 ///
 /// A claim-value fingerprint is derived from the canonical Claim IRI, canonical

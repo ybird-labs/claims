@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 use super::DomainError;
 
 /// Canonical claim content before it has been paired with assertion provenance.
