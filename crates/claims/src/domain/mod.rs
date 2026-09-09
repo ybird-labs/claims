@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //! Pure Claims Engine domain model.
 //!
 //! Domain code owns business language and invariants only.

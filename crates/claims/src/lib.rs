@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //! Claims Engine core crate.
 //!
 //! This crate starts intentionally small. Keep the domain pure and add concrete

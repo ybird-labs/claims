@@ -41,3 +41,17 @@ The Claims Engine provides a shared substrate where evidence can be authored onc
 ## Acknowledgements
 
 This project is based on Sams and Austin's Claims Engine Paper.
+
+## License
+
+The first-party software in this repository, including the claims crate and
+build configuration, is licensed under the [Mozilla Public License 2.0](LICENSE).
+Source files use the SPDX identifier `MPL-2.0`.
+
+`design/original_paper.md` is attributed to Austin Wade Smith and Sam Bennetts
+and is marked for internal reference only. It is excluded from this license
+grant; this repository does not grant permission to use or redistribute that
+paper under MPL-2.0.
+
+This software license does not license claims or other data submitted to the
+engine.

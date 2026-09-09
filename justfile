@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 set dotenv-load := true
 
 default: ci

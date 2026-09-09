@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //! Infrastructure adapters.
 //!
 //! Concrete persistence, RDF/canonicalization, projection writers, external

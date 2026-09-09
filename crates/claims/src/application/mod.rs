@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //! Application layer.
 //!
 //! Use cases, commands, queries, and side-effecting ports belong here.

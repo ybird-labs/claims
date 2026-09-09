@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 use time::format_description::well_known::Rfc3339;
 use time::{OffsetDateTime, UtcOffset};
 
