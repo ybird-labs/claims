@@ -69,16 +69,23 @@ abstraction. Async IO-facing traits do not belong in `domain`.
 Keep these distinctions encoded in Rust types:
 
 ```text
-SubmittedMaterial != ClaimContent != Assertion != ClaimCandidate != Claim
-ClaimIri != SnapshotIri
-AssertedAt != AcceptedAt != SubmittedAt
+SubmittedMaterial != ClaimContent != ClaimCandidate != Claim
+ClaimIri != SnapshotIri != SchemaVersionIri
+AcceptedAt != SubmittedAt != any instant asserted inside claim content
 ClaimFingerprint != SnapshotFingerprint != SubmittedMaterialFingerprint
 canonical claim content != raw submitted material
+witnessed audit metadata != asserted content
 L0/projection != source of truth
 ```
 
 Do not collapse these into raw `String`, generic `DateTime<Utc>`, or generic
 `Fingerprint` fields unless there is an explicit design decision.
+
+Removed by design decision (2026-07-02, see
+`design/CLAIMS_ENGINE_DOMAIN_MODEL.md` §19): engine-level assertion
+provenance. Do not reintroduce `Assertion`, `AssertionProvenance`,
+`AssertedAt`, or `AssertorIri` as domain concepts. Attribution and assertion
+time are user-space claim content validated at L1, not envelope fields.
 
 ## Where things belong
 
@@ -89,15 +96,16 @@ Pure domain concepts and invariants:
 ```text
 Claim
 ClaimCandidate
+ClaimValue (declared schema references + canonical content)
+ClaimContent
+SchemaVersionRef
 Snapshot
 SnapshotMembership
 SubmittedMaterial
-ClaimContent
-Assertion
-AssertionProvenance
-ClaimIri / SnapshotIri
-AssertedAt / AcceptedAt / SubmittedAt
-ClaimFingerprint / SnapshotFingerprint
+SubmissionRecord
+ClaimIri / SnapshotIri / SchemaVersionIri
+AcceptedAt / SubmittedAt
+ClaimFingerprint / SnapshotFingerprint / SubmittedMaterialFingerprint
 ```
 
 ### `application/`
@@ -106,7 +114,9 @@ Use-case orchestration and commands:
 
 ```text
 SubmitClaimMaterial
-AdmitCanonicalClaim
+AdmitClaim
+RegisterSchemaVersion
+RecordValidationOutcome
 CreateSnapshot
 ResolveClaim
 ResolveSnapshot

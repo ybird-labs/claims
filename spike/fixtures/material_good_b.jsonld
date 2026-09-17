@@ -1,0 +1,28 @@
+{
+  "verified_at": "2026-06-30T09:00:00Z",
+  "site": "https://sites.example/field-7",
+  "storage_method": "biochar soil amendment",
+  "tons_co2": 5,
+  "verifier": {
+    "accreditation_id": "ACR-2031-0042",
+    "name": "Alice Chen",
+    "type": "Verifier",
+    "id": "https://verifiers.example/alice"
+  },
+  "type": "CarbonStorageVerification",
+  "@context": {
+    "verified_at": { "@id": "csv:verified_at", "@type": "xsd:dateTime" },
+    "site": { "@id": "csv:site", "@type": "@id" },
+    "storage_method": "csv:storage_method",
+    "tons_co2": { "@id": "csv:tons_co2", "@type": "xsd:integer" },
+    "accreditation_id": "csv:accreditation_id",
+    "name": "csv:name",
+    "verifier": { "@id": "csv:verifier" },
+    "type": "@type",
+    "id": "@id",
+    "Verifier": "csv:Verifier",
+    "CarbonStorageVerification": "csv:CarbonStorageVerification",
+    "csv": "https://claims.example/schema/carbon-storage-verification/1.0.0/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  }
+}

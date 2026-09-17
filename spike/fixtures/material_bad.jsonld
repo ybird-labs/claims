@@ -1,0 +1,27 @@
+{
+  "@context": {
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "csv": "https://claims.example/schema/carbon-storage-verification/1.0.0/",
+    "CarbonStorageVerification": "csv:CarbonStorageVerification",
+    "Verifier": "csv:Verifier",
+    "id": "@id",
+    "type": "@type",
+    "verifier": { "@id": "csv:verifier" },
+    "name": "csv:name",
+    "accreditation_id": "csv:accreditation_id",
+    "tons_co2": { "@id": "csv:tons_co2", "@type": "xsd:integer" },
+    "storage_method": "csv:storage_method",
+    "site": { "@id": "csv:site", "@type": "@id" },
+    "verified_at": { "@id": "csv:verified_at", "@type": "xsd:dateTime" }
+  },
+  "type": "CarbonStorageVerification",
+  "verifier": {
+    "id": "https://verifiers.example/mallory",
+    "type": "Verifier",
+    "name": "Mallory Kwan"
+  },
+  "tons_co2": 0,
+  "storage_method": "unspecified",
+  "site": "https://sites.example/field-9",
+  "verified_at": "2026-06-30T10:00:00Z"
+}

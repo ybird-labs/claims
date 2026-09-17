@@ -1,0 +1,32 @@
+{
+  "@context": {
+    "RequirementJudgment": "rj:RequirementJudgment",
+    "credit_class_version": "rj:credit_class_version",
+    "evidence": {
+      "@id": "rj:evidence",
+      "@type": "@id"
+    },
+    "id": "@id",
+    "judge": {
+      "@id": "rj:judge",
+      "@type": "@id"
+    },
+    "judged_at": {
+      "@id": "rj:judged_at",
+      "@type": "xsd:dateTime"
+    },
+    "outcome": "rj:outcome",
+    "requirement": {
+      "@id": "rj:requirement",
+      "@type": "@id"
+    },
+    "requirement_id": "rj:requirement_id",
+    "rj": "https://carboneg.example/schema/requirement-judgment/1.0.0/",
+    "site": {
+      "@id": "rj:site",
+      "@type": "@id"
+    },
+    "type": "@type",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  }
+}
