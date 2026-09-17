@@ -1,0 +1,57 @@
+{
+  "credit_class_version": "1.5.2",
+  "derivation": {
+    "inputs": [
+      "sampling_summary.jsonld",
+      "site_record.jsonld"
+    ],
+    "property": "site_project_start_date",
+    "rule": "https://carboneg.example/rule/earliest-active-soil-sampling-date/1.0.0",
+    "subject": "https://carboneg.example/site/02.4368.00441",
+    "value": "2024-10-22"
+  },
+  "farm_key": "02.4368.00441",
+  "judged_at": "2026-05-21T21:31:26+00:00",
+  "judgments": [
+    {
+      "evidence": [
+        "site_record.jsonld",
+        "plot_002868.jsonld",
+        "plot_002869.jsonld"
+      ],
+      "outcome": "satisfied",
+      "requirement": "https://carboneg.example/requirement/C06-REGISTRATION-SL-003",
+      "requirement_id": "C06-REGISTRATION-SL-003"
+    },
+    {
+      "evidence": [
+        "site_record.jsonld",
+        "plot_002868.jsonld",
+        "plot_002869.jsonld"
+      ],
+      "outcome": "unclear",
+      "requirement": "https://carboneg.example/requirement/C06-REGISTRATION-SL-006",
+      "requirement_id": "C06-REGISTRATION-SL-006"
+    },
+    {
+      "evidence": [
+        "derivation",
+        "sampling_summary.jsonld"
+      ],
+      "outcome": "satisfied",
+      "requirement": "https://carboneg.example/requirement/C06-REGISTRATION-SL-007",
+      "requirement_id": "C06-REGISTRATION-SL-007"
+    },
+    {
+      "evidence": [
+        "derivation",
+        "plot_002868.jsonld",
+        "plot_002869.jsonld"
+      ],
+      "outcome": "satisfied",
+      "requirement": "https://carboneg.example/requirement/C06-REGISTRATION-SL-009",
+      "requirement_id": "C06-REGISTRATION-SL-009"
+    }
+  ],
+  "site": "https://carboneg.example/site/02.4368.00441"
+}

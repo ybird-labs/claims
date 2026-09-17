@@ -1,0 +1,26 @@
+{
+  "@context": {
+    "Derivation": "dv:Derivation",
+    "derived_from": {
+      "@id": "dv:derived_from",
+      "@type": "@id"
+    },
+    "dv": "https://carboneg.example/schema/derivation/1.0.0/",
+    "id": "@id",
+    "property": "dv:property",
+    "rule": {
+      "@id": "dv:rule",
+      "@type": "@id"
+    },
+    "subject": {
+      "@id": "dv:subject",
+      "@type": "@id"
+    },
+    "type": "@type",
+    "value": {
+      "@id": "dv:value",
+      "@type": "xsd:date"
+    },
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  }
+}
