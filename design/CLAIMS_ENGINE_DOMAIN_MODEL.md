@@ -139,6 +139,12 @@ cannot contain the ClaimIRI that is derived from that content. This is
 settled (2026-07-15): the self-referential blank-node alternative is
 rejected; the spike proved the envelope form fingerprint-clean end-to-end.
 
+> **Superseded (2026-10-15).** The declaration now lives inside the content
+> as `dcterms:conformsTo` on exactly one blank claim node; see
+> `SPIKE_LEARNINGS_AND_WORK_PLAN.md` §3. The circularity above holds only
+> when the claim node is the ClaimIRI. A blank node is fixed before
+> hashing, so nothing circular remains.
+
 ## 6. Schemas
 
 There are two levels of schema:
