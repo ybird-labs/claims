@@ -61,9 +61,11 @@ Conformance is judged per class. This specification defines five classes:
    admission floor (§7). Says nothing about truth, schema conformance, or
    attestation.
 2. **Conforming fingerprint processor** — given the inputs of §6, produces
-   the exact canonical bytes, fingerprint, and IRI this specification
-   defines — for claims, snapshots, and submitted material — or raises the
-   defined error.
+   exactly what this specification defines for each object, or raises the
+   defined error: for claims and snapshots, the canonical bytes,
+   fingerprint, and IRI (§6.1, §6.2); for submitted material, the
+   fingerprint of the received octets only, with no canonicalization and
+   no IRI (§6.3).
 3. **Conforming admission processor** — applies exactly the checks of §7,
    no more and no fewer, and reports the defined results and errors.
    Conformance is explicitly *not* "checks schema conformance": an
