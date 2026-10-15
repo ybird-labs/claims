@@ -1,6 +1,6 @@
 # Spike Learnings and Work Plan
 
-Date: 2026-10-08
+Date: 2026-10-08 (naming section revised 2026-10-14)
 Status: **Agreed**
 
 This document closes out the `spike/` codebase. It records what the spike
@@ -38,7 +38,7 @@ These hold in `spike/` today, with tests and vectors.
 The spike predates these decisions. Its code still reflects the earlier
 model.
 
-6. **Names use the `claims:` scheme** (protocol §5.3). The spike mints
+6. **Names use the `claims:` scheme** (protocol §5.3; superseded by §3). The spike mints
    `https://claims.example/...` names.
 7. **The engine is transparent.** No submission fact enters a Claim's
    value; logging is an operator concern (protocol §4.1). The spike still
@@ -82,16 +82,37 @@ Step 5 does not depend on the port and can run alongside it. Running it
 early means any surprise in schema identity lands before the registry
 slice in step 4.
 
-## 3. Naming decisions recorded with this plan
+## 3. Claim naming decision (2026-10-14)
 
-- **One name form.** The canonical hex name in protocol §5.3 is the only
-  form used for identity, comparison, and RDF content. No aliases.
-- **Compact encoding deferred.** A base58check encoding of the same
-  fingerprint, for places where people handle names (QR codes, pasted
-  IDs), may be added later as a non-identity convention like the §5.4
-  gateways. Tools would convert it to the canonical name before any use.
-  It waits for a concrete need.
-- **Base58 does not give Regen compatibility.** Regen's IRIs hash content
-  alone with BLAKE2b; ours hash schemas plus content with SHA-256. The
-  Regen connection belongs in the attestation suite (step 6), which
-  anchors our fingerprint on their ledger without changing our names.
+This replaces the earlier naming decisions recorded here (one `claims:`
+hex name form; Regen connection only through the attestation suite). It
+supersedes the identity parts of the protocol spec (§4.1 Claim value,
+§§5–6, §7 steps 1–2, the §8 example, §11 vectors) and the matching
+sections of the domain model. The rework lands in a follow-up PR, before
+port slice 1 (step 3).
+
+- **Only the canonical content is hashed.** No version tag and no schema
+  lines in the hash.
+- **Schema declarations live inside the content,** as a dedicated
+  statement saying which schema the claim follows. A copied claim keeps
+  its schema with no registry needed. Regen's base Claim must allow this
+  statement, because their claim types reject properties they don't list.
+- **The naming recipe is a value the crate is given.** A recipe sets the
+  hash function and how the name is written. The crate takes it as
+  configuration (a trait) and does not choose one itself.
+- **One recipe per network.** Every engine that shares claims within a
+  network mints names with the same recipe; otherwise one claim gets two
+  names and citations stop matching. Verification accepts any listed
+  recipe, because the name shows which recipe made it.
+- **The Regen network uses Regen's Graph IRI**
+  (`regen:<base58check>.rdf`, BLAKE2b-256 over the canonical N-Quads, as
+  proposed in regen-network/claims PR #60, ADR 0002 D6). Regen's ledger
+  can then anchor and sign claims by their name. The `claims:` recipe
+  stays a listed recipe for other networks.
+- **The hash no longer separates kinds.** A claim and a snapshot with
+  identical bytes would get the same name, so verifiers must check the
+  type stated in the content.
+
+Still open, for the follow-up PR: the statement used for schema
+declarations and which node it attaches to; the snapshot recipe (Regen's
+ADR names snapshots as RDF graphs, D11); and the new test vectors.

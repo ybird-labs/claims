@@ -3,6 +3,14 @@
 Date: 2026-09-12 (revises 2026-09-10)
 Status: **Draft**
 
+**Superseded in part (2026-10-14).** Claim naming is being redesigned:
+the hash will cover the canonical content only, schema declarations move
+inside the content, and the naming recipe becomes a configured value
+(Regen's Graph IRI on the Regen network). This affects §4.1, §§5–6, §7
+steps 1–2, the §8 example, and §11. Until a follow-up PR revises them,
+those sections describe the earlier design. See
+`design/SPIKE_LEARNINGS_AND_WORK_PLAN.md` §3.
+
 Change note (2026-09-12): the per-instance engine namespace is deleted.
 Engine-minted names now use one protocol-fixed, origin-free reference
 form under the protocol-owned `claims` URI scheme (§5.3; scheme
@@ -129,6 +137,8 @@ contents, Claim fingerprints, or the SnapshotIRI itself. Same membership,
 same SnapshotIRI, same Snapshot.
 
 ## 5. Fingerprint suites
+
+*Superseded in part; see the note at the top of this document.*
 
 ### 5.1 Suite identifiers are frozen versioned tuples
 
