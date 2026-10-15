@@ -13,13 +13,13 @@ A claim may describe evidence, measurement, validation, endorsement, contradicti
 ## Layer Model
 
 ```text
-L0 -> L1 -> Ln
+L0 -> L1 -> L2
 ```
 
-- **L0:** open linked-data claim graph with snapshot and evidence-set references
+- **L0:** raw claim record and open linked-data claim graph — immutable, content-addressed claims admitted against the engine-defined base claim schema, with snapshot and evidence-set references
 - **Snapshots:** stable bounded evidence sets of claim references
-- **L1:** schema and protocol-based validation, generally over snapshots but also possible over claims or subgraphs
-- **Ln:** assets, certificates, contracts, governance actions, reports, and triggers derived from claims or validation results
+- **L1:** validation of claims against user-defined claim-type schemas; outcomes are recorded as validation claims back into L0
+- **L2:** assets, certificates, contracts, governance actions, reports, and triggers derived from claims and validation claims
 
 ## Why It Exists
 
@@ -31,7 +31,9 @@ The Claims Engine provides a shared substrate where evidence can be authored onc
 
 - Semantic data over static PDFs
 - Open graph at the base layer
-- Schema-specific validation above the base layer
+- Engine-defined base claim schema; user-defined claim-type schemas above it
+- Validation as judgment, not gatekeeping: validation results are claims too
+- Provenance is claim content; the engine is transparent and witnesses nothing
 - Pluggable verification and authority models
 - Portable evidence across programs
 - Commitments, anchors, and attestations for integrity, timestamping, and portability, not truth or validation by themselves
@@ -44,14 +46,16 @@ This project is based on Sams and Austin's Claims Engine Paper.
 
 ## License
 
-The first-party software in this repository, including the claims crate and
-build configuration, is licensed under the [Mozilla Public License 2.0](LICENSE).
-Source files use the SPDX identifier `MPL-2.0`.
+The first-party software in this repository, including the claims crate,
+HTML templates, build configuration, and test fixtures, is licensed under the
+[Mozilla Public License 2.0](LICENSE). Source files use the SPDX identifier
+`MPL-2.0`.
 
-`design/original_paper.md` is attributed to Austin Wade Smith and Sam Bennetts
-and is marked for internal reference only. It is excluded from this license
-grant; this repository does not grant permission to use or redistribute that
-paper under MPL-2.0.
+Third-party materials are excluded from this license grant:
+
+- `design/original_paper.md` is attributed to Austin Wade Smith and Sam Bennetts
+  and is marked for internal reference only. This repository does not grant
+  permission to use or redistribute that paper under MPL-2.0.
 
 This software license does not license claims or other data submitted to the
 engine.
